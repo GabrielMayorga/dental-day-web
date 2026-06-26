@@ -1,17 +1,17 @@
 // src/pages/PatientsPage.jsx
 // ============================================================
-// Módulo de pacientes: lista, búsqueda y alta de nuevos
-// pacientes. Vive dentro del Layout, sin cabecera propia.
+// Módulo de pacientes: lista, búsqueda, alta, edición y
+// desactivación de pacientes. Vive dentro del Layout.
 // ============================================================
 import { useState, useEffect, useCallback } from 'react';
 import {
   Box, Typography, Button, TextField, InputAdornment,
   Table, TableHead, TableBody, TableRow, TableCell, TableContainer,
   CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions,
-  MenuItem, Alert, Paper,
+  MenuItem, Alert, Paper, IconButton, Tooltip,
 } from '@mui/material';
-import { Search, PersonAdd } from '@mui/icons-material';
-import { getPatients, createPatient } from '../api/patients';
+import { Search, PersonAdd, Edit, Delete } from '@mui/icons-material';
+import { getPatients, createPatient, updatePatient, deletePatient } from '../api/patients';
 
 // ── Opciones de los selects ──────────────────────────────────
 const GENDER_OPTIONS = [
@@ -35,6 +35,12 @@ const EMPTY_FORM = {
   allergies:  '',
 };
 
+// ── Helpers ──────────────────────────────────────────────────
+
+// Extrae "YYYY-MM-DD" de un ISO que puede traer hora
+// Ejemplo: "1990-05-15T00:00:00.000Z" → "1990-05-15"
+const toBirthDate = (iso) => (iso ? iso.substring(0, 10) : '');
+
 // ── Estilo compartido para las celdas de encabezado ──────────
 const HEADER_CELL_SX = {
   fontWeight: 600,
@@ -45,15 +51,21 @@ const HEADER_CELL_SX = {
 
 const PatientsPage = () => {
   // ── Estado de la lista ───────────────────────────────────────
-  const [patients, setPatients]   = useState([]);
+  const [patients, setPatients]       = useState([]);
   const [loadingList, setLoadingList] = useState(true);
-  const [searchText, setSearchText]  = useState('');
+  const [searchText, setSearchText]   = useState('');
 
-  // ── Estado del diálogo ──────────────────────────────────────
-  const [dialogOpen, setDialogOpen]   = useState(false);
-  const [form, setForm]               = useState(EMPTY_FORM);
-  const [saving, setSaving]           = useState(false);
-  const [formError, setFormError]     = useState('');
+  // ── Estado del diálogo de crear / editar ────────────────────
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingId, setEditingId]   = useState(null); // null = crear, id = editar
+  const [form, setForm]             = useState(EMPTY_FORM);
+  const [saving, setSaving]         = useState(false);
+  const [formError, setFormError]   = useState('');
+
+  // ── Estado del diálogo de confirmación (desactivar) ─────────
+  const [confirmPatient, setConfirmPatient] = useState(null); // null = cerrado
+  const [deleting, setDeleting]             = useState(false);
+  const [deleteError, setDeleteError]       = useState('');
 
   // ── Carga de pacientes ───────────────────────────────────────
   // fetchPatients se puede llamar con o sin query; siempre
@@ -87,8 +99,27 @@ const PatientsPage = () => {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleOpenDialog = () => {
+  // Abre el diálogo en modo CREAR
+  const handleOpenCreate = () => {
+    setEditingId(null);
     setForm(EMPTY_FORM);
+    setFormError('');
+    setDialogOpen(true);
+  };
+
+  // Abre el diálogo en modo EDITAR precargado con los datos del paciente
+  const handleOpenEdit = (patient) => {
+    setEditingId(patient.id);
+    setForm({
+      first_name: patient.first_name || '',
+      last_name:  patient.last_name  || '',
+      birth_date: toBirthDate(patient.birth_date),
+      gender:     patient.gender     || '',
+      phone:      patient.phone      || '',
+      city:       patient.city       || '',
+      blood_type: patient.blood_type || '',
+      allergies:  patient.allergies  || '',
+    });
     setFormError('');
     setDialogOpen(true);
   };
@@ -96,6 +127,7 @@ const PatientsPage = () => {
   const handleCloseDialog = () => {
     if (saving) return; // evita cerrar mientras guarda
     setDialogOpen(false);
+    setEditingId(null);
   };
 
   const handleSave = async () => {
@@ -106,8 +138,13 @@ const PatientsPage = () => {
       const payload = Object.fromEntries(
         Object.entries(form).filter(([, v]) => v !== '')
       );
-      await createPatient(payload);
+      if (editingId) {
+        await updatePatient(editingId, payload);
+      } else {
+        await createPatient(payload);
+      }
       setDialogOpen(false);
+      setEditingId(null);
       fetchPatients(searchText.trim()); // refresca la lista
     } catch (err) {
       setFormError(
@@ -117,6 +154,37 @@ const PatientsPage = () => {
       );
     } finally {
       setSaving(false);
+    }
+  };
+
+  // ── Manejo de desactivación ──────────────────────────────────
+  const handleOpenConfirm = (patient) => {
+    setDeleteError('');
+    setConfirmPatient(patient);
+  };
+
+  const handleCloseConfirm = () => {
+    if (deleting) return; // evita cerrar durante la operación
+    setConfirmPatient(null);
+    setDeleteError('');
+  };
+
+  const handleDelete = async () => {
+    if (!confirmPatient) return;
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      await deletePatient(confirmPatient.id);
+      setConfirmPatient(null);
+      fetchPatients(searchText.trim()); // refresca la lista
+    } catch (err) {
+      setDeleteError(
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        'Error al desactivar el paciente'
+      );
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -137,7 +205,7 @@ const PatientsPage = () => {
         <Button
           variant="contained"
           startIcon={<PersonAdd />}
-          onClick={handleOpenDialog}
+          onClick={handleOpenCreate}
           sx={{ borderRadius: '12px', px: 2.5 }}
         >
           Nuevo paciente
@@ -181,6 +249,10 @@ const PatientsPage = () => {
                 <TableCell sx={HEADER_CELL_SX}>Teléfono</TableCell>
                 <TableCell sx={HEADER_CELL_SX}>Ciudad</TableCell>
                 <TableCell sx={HEADER_CELL_SX}>Tipo de sangre</TableCell>
+                {/* Columna nueva: acciones por fila */}
+                <TableCell sx={{ ...HEADER_CELL_SX, width: 96, textAlign: 'center' }}>
+                  Acciones
+                </TableCell>
               </TableRow>
             </TableHead>
 
@@ -188,7 +260,7 @@ const PatientsPage = () => {
               {/* Estado: cargando */}
               {loadingList && (
                 <TableRow>
-                  <TableCell colSpan={4} align="center" sx={{ py: 6 }}>
+                  <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
                     <CircularProgress size={32} sx={{ color: '#1C64AD' }} />
                   </TableCell>
                 </TableRow>
@@ -197,7 +269,7 @@ const PatientsPage = () => {
               {/* Estado: sin resultados */}
               {!loadingList && patients.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} align="center" sx={{ py: 6, color: '#42648A', fontSize: 14 }}>
+                  <TableCell colSpan={5} align="center" sx={{ py: 6, color: '#42648A', fontSize: 14 }}>
                     {searchText
                       ? `Sin resultados para "${searchText}"`
                       : 'No hay pacientes registrados aún'}
@@ -218,6 +290,28 @@ const PatientsPage = () => {
                   <TableCell sx={{ color: '#42648A' }}>{p.phone || '—'}</TableCell>
                   <TableCell sx={{ color: '#42648A' }}>{p.city  || '—'}</TableCell>
                   <TableCell sx={{ color: '#42648A' }}>{p.blood_type || '—'}</TableCell>
+
+                  {/* Acciones: editar y desactivar */}
+                  <TableCell align="center" sx={{ py: 0.5 }}>
+                    <Tooltip title="Editar">
+                      <IconButton
+                        size="small"
+                        onClick={() => handleOpenEdit(p)}
+                        sx={{ color: '#1C64AD' }}
+                      >
+                        <Edit fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Desactivar">
+                      <IconButton
+                        size="small"
+                        onClick={() => handleOpenConfirm(p)}
+                        sx={{ color: '#D32F2F', opacity: 0.7, '&:hover': { opacity: 1 } }}
+                      >
+                        <Delete fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -225,7 +319,7 @@ const PatientsPage = () => {
         </TableContainer>
       </Paper>
 
-      {/* ── Diálogo: nuevo paciente ─────────────────────────── */}
+      {/* ── Diálogo: crear / editar paciente ───────────────── */}
       <Dialog
         open={dialogOpen}
         onClose={handleCloseDialog}
@@ -241,8 +335,9 @@ const PatientsPage = () => {
           },
         }}
       >
+        {/* Título dinámico según el modo */}
         <DialogTitle sx={{ fontWeight: 600, color: '#0C2A4A', pb: 1 }}>
-          Nuevo paciente
+          {editingId ? 'Editar paciente' : 'Nuevo paciente'}
         </DialogTitle>
 
         <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
@@ -366,6 +461,62 @@ const PatientsPage = () => {
             sx={{ borderRadius: '12px', minWidth: 110 }}
           >
             {saving ? <CircularProgress size={20} color="inherit" /> : 'Guardar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Diálogo: confirmar desactivación ────────────────── */}
+      <Dialog
+        open={Boolean(confirmPatient)}
+        onClose={handleCloseConfirm}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '16px',
+            background: 'rgba(255,255,255,0.92)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            boxShadow: '0 20px 60px rgba(20,60,110,0.15)',
+          },
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 600, color: '#0C2A4A', pb: 0.5 }}>
+          ¿Desactivar paciente?
+        </DialogTitle>
+
+        <DialogContent>
+          {/* Error del backend al eliminar */}
+          {deleteError && (
+            <Alert severity="error" sx={{ borderRadius: '12px', mb: 1.5 }}>
+              {deleteError}
+            </Alert>
+          )}
+          <Typography variant="body2" sx={{ color: '#42648A', mt: 0.5 }}>
+            ¿Desactivar a{' '}
+            <strong>
+              {confirmPatient?.first_name} {confirmPatient?.last_name}
+            </strong>
+            ? Su historial se conservará pero dejará de aparecer en la lista.
+          </Typography>
+        </DialogContent>
+
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={handleCloseConfirm}
+            disabled={deleting}
+            sx={{ borderRadius: '12px', color: '#42648A' }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleDelete}
+            disabled={deleting}
+            sx={{ borderRadius: '12px', minWidth: 110 }}
+          >
+            {deleting ? <CircularProgress size={20} color="inherit" /> : 'Desactivar'}
           </Button>
         </DialogActions>
       </Dialog>
