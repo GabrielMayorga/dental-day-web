@@ -11,6 +11,7 @@ import Layout from './components/Layout';
 import LoginPage from './pages/LoginPage';
 import HomePage from './pages/HomePage';
 import PatientsPage from './pages/PatientsPage';
+import AgendaPage from './pages/AgendaPage';
 
 function App() {
   return (
@@ -30,7 +31,7 @@ function App() {
           >
             <Route path="/" element={<HomePage />} />
             <Route path="/pacientes" element={<PatientsPage />} />
-            {/* <Route path="/agenda" element={<AgendaPage />} /> */}
+            <Route path="/agenda" element={<AgendaPage />} />
           </Route>
         </Routes>
       </BrowserRouter>
