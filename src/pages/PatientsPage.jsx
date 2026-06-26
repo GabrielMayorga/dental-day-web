@@ -4,6 +4,7 @@
 // desactivación de pacientes. Vive dentro del Layout.
 // ============================================================
 import { useState, useEffect, useCallback } from 'react';
+import { useColorMode } from '../context/ThemeContext';
 import {
   Box, Typography, Button, TextField, InputAdornment,
   Table, TableHead, TableBody, TableRow, TableCell, TableContainer,
@@ -44,12 +45,20 @@ const toBirthDate = (iso) => (iso ? iso.substring(0, 10) : '');
 // ── Estilo compartido para las celdas de encabezado ──────────
 const HEADER_CELL_SX = {
   fontWeight: 600,
-  color: '#42648A',
+  color: 'text.secondary',
   fontSize: 13,
   borderBottom: '2px solid rgba(28,100,173,0.12)',
 };
 
 const PatientsPage = () => {
+  const { mode } = useColorMode();
+  const isDark = mode === 'dark';
+
+  // Fondo glass adaptado al modo
+  const glassBg = isDark ? 'rgba(20, 28, 46, 0.65)' : 'rgba(255,255,255,0.65)';
+  const glassBorder = isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(255,255,255,0.6)';
+  const dialogBg = isDark ? 'rgba(20, 28, 46, 0.92)' : 'rgba(255,255,255,0.92)';
+
   // ── Estado de la lista ───────────────────────────────────────
   const [patients, setPatients]       = useState([]);
   const [loadingList, setLoadingList] = useState(true);
@@ -194,10 +203,10 @@ const PatientsPage = () => {
       {/* Cabecera de sección */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
         <Box>
-          <Typography variant="h5" sx={{ color: '#0C2A4A', fontWeight: 600 }}>
+          <Typography variant="h5" sx={{ color: 'text.primary', fontWeight: 600 }}>
             Pacientes
           </Typography>
-          <Typography variant="body2" sx={{ color: '#42648A', mt: 0.3 }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.3 }}>
             Registro y consulta de pacientes de la clínica
           </Typography>
         </Box>
@@ -222,10 +231,10 @@ const PatientsPage = () => {
         InputProps={{
           startAdornment: (
             <InputAdornment position="start">
-              <Search sx={{ color: '#7089A5', fontSize: 20 }} />
+              <Search sx={{ color: 'text.secondary', fontSize: 20 }} />
             </InputAdornment>
           ),
-          sx: { borderRadius: '12px', background: 'rgba(255,255,255,0.7)' },
+          sx: { borderRadius: '12px', background: isDark ? 'rgba(20,28,46,0.60)' : 'rgba(255,255,255,0.7)' },
         }}
       />
 
@@ -234,8 +243,8 @@ const PatientsPage = () => {
         elevation={0}
         sx={{
           borderRadius: '16px',
-          border: '1px solid rgba(255,255,255,0.6)',
-          background: 'rgba(255,255,255,0.65)',
+          border: glassBorder,
+          background: glassBg,
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
           overflow: 'hidden',
@@ -269,7 +278,7 @@ const PatientsPage = () => {
               {/* Estado: sin resultados */}
               {!loadingList && patients.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} align="center" sx={{ py: 6, color: '#42648A', fontSize: 14 }}>
+                  <TableCell colSpan={5} align="center" sx={{ py: 6, color: 'text.secondary', fontSize: 14 }}>
                     {searchText
                       ? `Sin resultados para "${searchText}"`
                       : 'No hay pacientes registrados aún'}
@@ -284,12 +293,12 @@ const PatientsPage = () => {
                   hover
                   sx={{ '&:last-child td': { border: 0 }, cursor: 'default' }}
                 >
-                  <TableCell sx={{ color: '#0C2A4A', fontWeight: 500 }}>
+                  <TableCell sx={{ color: 'text.primary', fontWeight: 500 }}>
                     {p.first_name} {p.last_name}
                   </TableCell>
-                  <TableCell sx={{ color: '#42648A' }}>{p.phone || '—'}</TableCell>
-                  <TableCell sx={{ color: '#42648A' }}>{p.city  || '—'}</TableCell>
-                  <TableCell sx={{ color: '#42648A' }}>{p.blood_type || '—'}</TableCell>
+                  <TableCell sx={{ color: 'text.secondary' }}>{p.phone || '—'}</TableCell>
+                  <TableCell sx={{ color: 'text.secondary' }}>{p.city  || '—'}</TableCell>
+                  <TableCell sx={{ color: 'text.secondary' }}>{p.blood_type || '—'}</TableCell>
 
                   {/* Acciones: editar y desactivar */}
                   <TableCell align="center" sx={{ py: 0.5 }}>
@@ -328,15 +337,15 @@ const PatientsPage = () => {
         PaperProps={{
           sx: {
             borderRadius: '20px',
-            background: 'rgba(255,255,255,0.9)',
+            background: dialogBg,
             backdropFilter: 'blur(24px)',
             WebkitBackdropFilter: 'blur(24px)',
-            boxShadow: '0 20px 60px rgba(20,60,110,0.2)',
+            boxShadow: isDark ? '0 20px 60px rgba(0,0,0,0.45)' : '0 20px 60px rgba(20,60,110,0.2)',
           },
         }}
       >
         {/* Título dinámico según el modo */}
-        <DialogTitle sx={{ fontWeight: 600, color: '#0C2A4A', pb: 1 }}>
+        <DialogTitle sx={{ fontWeight: 600, color: 'text.primary', pb: 1 }}>
           {editingId ? 'Editar paciente' : 'Nuevo paciente'}
         </DialogTitle>
 
@@ -450,7 +459,7 @@ const PatientsPage = () => {
           <Button
             onClick={handleCloseDialog}
             disabled={saving}
-            sx={{ borderRadius: '12px', color: '#42648A' }}
+            sx={{ borderRadius: '12px', color: 'text.secondary' }}
           >
             Cancelar
           </Button>
@@ -474,14 +483,14 @@ const PatientsPage = () => {
         PaperProps={{
           sx: {
             borderRadius: '16px',
-            background: 'rgba(255,255,255,0.92)',
+            background: dialogBg,
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
-            boxShadow: '0 20px 60px rgba(20,60,110,0.15)',
+            boxShadow: isDark ? '0 20px 60px rgba(0,0,0,0.45)' : '0 20px 60px rgba(20,60,110,0.15)',
           },
         }}
       >
-        <DialogTitle sx={{ fontWeight: 600, color: '#0C2A4A', pb: 0.5 }}>
+        <DialogTitle sx={{ fontWeight: 600, color: 'text.primary', pb: 0.5 }}>
           ¿Desactivar paciente?
         </DialogTitle>
 
@@ -492,7 +501,7 @@ const PatientsPage = () => {
               {deleteError}
             </Alert>
           )}
-          <Typography variant="body2" sx={{ color: '#42648A', mt: 0.5 }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
             ¿Desactivar a{' '}
             <strong>
               {confirmPatient?.first_name} {confirmPatient?.last_name}
@@ -505,7 +514,7 @@ const PatientsPage = () => {
           <Button
             onClick={handleCloseConfirm}
             disabled={deleting}
-            sx={{ borderRadius: '12px', color: '#42648A' }}
+            sx={{ borderRadius: '12px', color: 'text.secondary' }}
           >
             Cancelar
           </Button>

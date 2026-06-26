@@ -7,6 +7,8 @@ import { LocalHospital, Email, Lock } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import AnimatedBackground from '../components/AnimatedBackground';
 import GlassCard from '../components/GlassCard';
+import ThemeToggle from '../components/ThemeToggle';
+import { useColorMode } from '../context/ThemeContext';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -14,6 +16,8 @@ const LoginPage = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const { mode } = useColorMode();
+  const isDark = mode === 'dark';
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -32,20 +36,23 @@ const LoginPage = () => {
   };
 
   return (
+    
     <AnimatedBackground>
+      <ThemeToggle floating />
       <GlassCard sx={{ width: 360, maxWidth: '90vw' }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
           <Box sx={{
             width: 56, height: 56, borderRadius: '16px', mb: 1.5,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'rgba(255,255,255,0.55)', border: '1px solid rgba(255,255,255,0.7)',
+            background: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.55)',
+            border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(255,255,255,0.7)',
           }}>
-            <LocalHospital sx={{ fontSize: 30, color: '#185FA5' }} />
+            <LocalHospital sx={{ fontSize: 30, color: 'primary.dark' }} />
           </Box>
-          <Typography variant="h6" sx={{ color: '#0C2A4A', fontWeight: 600 }}>
+          <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 600 }}>
             Clínica Dental Day
           </Typography>
-          <Typography variant="body2" sx={{ color: '#42648A' }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
             Inicia sesión para continuar
           </Typography>
         </Box>
@@ -56,12 +63,12 @@ const LoginPage = () => {
           <TextField
             fullWidth label="Correo" type="email" value={email}
             onChange={(e) => setEmail(e.target.value)} required margin="normal"
-            InputProps={{ startAdornment: (<InputAdornment position="start"><Email sx={{ color: '#42648A' }} /></InputAdornment>) }}
+            InputProps={{ startAdornment: (<InputAdornment position="start"><Email sx={{ color: 'text.secondary' }} /></InputAdornment>) }}
           />
           <TextField
             fullWidth label="Contraseña" type="password" value={password}
             onChange={(e) => setPassword(e.target.value)} required margin="normal"
-            InputProps={{ startAdornment: (<InputAdornment position="start"><Lock sx={{ color: '#42648A' }} /></InputAdornment>) }}
+            InputProps={{ startAdornment: (<InputAdornment position="start"><Lock sx={{ color: 'text.secondary' }} /></InputAdornment>) }}
           />
           <Button
             type="submit" fullWidth variant="contained" disabled={loading}
@@ -71,7 +78,7 @@ const LoginPage = () => {
           </Button>
         </form>
 
-        <Typography variant="caption" sx={{ display: 'block', textAlign: 'center', mt: 2, color: '#5B7A99' }}>
+        <Typography variant="caption" sx={{ display: 'block', textAlign: 'center', mt: 2, color: 'text.secondary' }}>
           Sistema de control y agenda de pacientes
         </Typography>
       </GlassCard>

@@ -1,18 +1,17 @@
 // src/main.jsx
 // ============================================================
-// Punto de entrada: monta la app y aplica el tema de MUI.
+// Punto de entrada. El ColorModeProvider ahora envuelve la app
+// y maneja el tema (claro/oscuro) internamente.
 // ============================================================
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { ThemeProvider, CssBaseline } from '@mui/material';
-import theme from './theme/theme';
+import { ColorModeProvider } from './context/ThemeContext';
 import App from './App.jsx';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <ThemeProvider theme={theme}>
-      <CssBaseline /> {/* Normaliza los estilos del navegador */}
+    <ColorModeProvider>
       <App />
-    </ThemeProvider>
+    </ColorModeProvider>
   </React.StrictMode>
 );

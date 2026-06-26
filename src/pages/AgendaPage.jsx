@@ -19,6 +19,8 @@ import { getAppointments, createAppointment } from '../api/appointments';
 import { getDentists } from '../api/staff';
 import { getPatients } from '../api/patients';
 import { getTreatments } from '../api/treatments';
+import { useColorMode } from '../context/ThemeContext';
+import '../styles/calendar.css';
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -67,67 +69,6 @@ const calendarLocaleES = {
   moreLinkText: 'más',
 };
 
-// ── Estilos glass para el contenedor del calendario ──────────
-const glassPaperSx = {
-  background: 'rgba(255, 255, 255, 0.72)',
-  backdropFilter: 'blur(16px)',
-  WebkitBackdropFilter: 'blur(16px)',
-  border: '1px solid rgba(28, 100, 173, 0.10)',
-  borderRadius: 3,
-  p: { xs: 2, md: 3 },
-  // Sobreescribe los estilos internos de FullCalendar para que encajen
-  '& .fc .fc-toolbar-title': {
-    fontSize: '1.05rem',
-    fontWeight: 600,
-    color: '#0C2A4A',
-  },
-  '& .fc .fc-button': {
-    background: '#1C64AD',
-    borderColor: '#1C64AD',
-    borderRadius: '8px',
-    fontSize: '0.8rem',
-    padding: '4px 12px',
-    fontFamily: 'inherit',
-    textTransform: 'none',
-    '&:hover': { background: '#0C447C', borderColor: '#0C447C' },
-    '&:focus': { boxShadow: 'none' },
-  },
-  '& .fc .fc-button-primary:disabled': {
-    background: '#2B7FD4',
-    borderColor: '#2B7FD4',
-  },
-  '& .fc .fc-button-active': {
-    background: '#0C447C !important',
-    borderColor: '#0C447C !important',
-  },
-  '& .fc-event': {
-    borderRadius: '6px',
-    fontSize: '0.78rem',
-    padding: '1px 3px',
-  },
-  '& .fc-timegrid-slot': {
-    height: '48px',
-  },
-  '& .fc-col-header-cell': {
-    color: '#42648A',
-    fontWeight: 600,
-    fontSize: '0.82rem',
-  },
-  '& .fc-timegrid-axis': {
-    color: '#42648A',
-    fontSize: '0.78rem',
-  },
-};
-
-// ── Estilos glass para el diálogo ────────────────────────────
-const dialogPaperSx = {
-  background: 'rgba(240, 247, 255, 0.94)',
-  backdropFilter: 'blur(20px)',
-  WebkitBackdropFilter: 'blur(20px)',
-  border: '1px solid rgba(28, 100, 173, 0.12)',
-  borderRadius: '16px',
-  minWidth: { xs: '90vw', sm: '480px' },
-};
 
 // Valores iniciales del formulario de nueva cita
 const FORM_EMPTY = {
@@ -140,6 +81,28 @@ const FORM_EMPTY = {
 
 // ── Componente principal ──────────────────────────────────────
 export default function AgendaPage() {
+  const { mode } = useColorMode();
+  const isDark = mode === 'dark';
+
+  // ── Estilos glass — dependen del modo ────────────────────────
+  const glassPaperSx = {
+    background: isDark ? 'rgba(20, 28, 46, 0.70)' : 'rgba(255, 255, 255, 0.72)',
+    backdropFilter: 'blur(16px)',
+    WebkitBackdropFilter: 'blur(16px)',
+    border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(28, 100, 173, 0.10)',
+    borderRadius: 3,
+    p: { xs: 2, md: 3 },
+  };
+
+  const dialogPaperSx = {
+    background: isDark ? 'rgba(20, 28, 46, 0.92)' : 'rgba(240, 247, 255, 0.94)',
+    backdropFilter: 'blur(20px)',
+    WebkitBackdropFilter: 'blur(20px)',
+    border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(28, 100, 173, 0.12)',
+    borderRadius: '16px',
+    minWidth: { xs: '90vw', sm: '480px' },
+  };
+
   // ── Estado del calendario ──────────────────────────────────
   const [events, setEvents] = useState([]);
   const [dentists, setDentists] = useState([]);
@@ -268,9 +231,9 @@ export default function AgendaPage() {
 
   // ── Render ─────────────────────────────────────────────────
   return (
-    <Box sx={{ p: { xs: 2, md: 3 } }}>
+    <Box sx={{ p: { xs: 2, md: 3 } }} data-fc-mode={mode}>
       {/* Encabezado */}
-      <Typography variant="h5" sx={{ color: '#0C2A4A', mb: 3 }}>
+      <Typography variant="h5" sx={{ color: 'text.primary', mb: 3 }}>
         Agenda
       </Typography>
 
@@ -307,18 +270,19 @@ export default function AgendaPage() {
               center: 'title',
               right: 'timeGridWeek,timeGridDay,dayGridMonth',
             }}
-            // Localización en español
             {...calendarLocaleES}
-            // Rango horario visible
-            slotMinTime="07:00:00"
-            slotMaxTime="20:00:00"
-            // Citas transformadas
+            nowIndicator={true}
+            allDaySlot={false}
+            slotMinTime="08:00:00"
+            slotMaxTime="18:00:00"
+            slotDuration="00:30:00"
+            slotLabelInterval="01:00:00"
+            expandRows={true}
+            dayHeaderFormat={{ weekday: 'short', day: 'numeric' }}
+            eventTimeFormat={{ hour: '2-digit', minute: '2-digit', hour12: false }}
             events={events}
-            // Altura del calendario
             height="auto"
-            // Muestra fines de semana
             weekends
-            // Habilita clic y arrastre para crear citas
             selectable
             selectMirror
             dateClick={handleDateClick}
@@ -333,7 +297,7 @@ export default function AgendaPage() {
         onClose={handleClose}
         PaperProps={{ sx: dialogPaperSx }}
       >
-        <DialogTitle sx={{ color: '#0C2A4A', fontWeight: 600, pb: 1 }}>
+        <DialogTitle sx={{ color: 'text.primary', fontWeight: 600, pb: 1 }}>
           Nueva cita
         </DialogTitle>
 
@@ -422,7 +386,7 @@ export default function AgendaPage() {
           <Button
             onClick={handleClose}
             disabled={saving}
-            sx={{ color: '#42648A' }}
+            sx={{ color: 'text.secondary' }}
           >
             Cancelar
           </Button>

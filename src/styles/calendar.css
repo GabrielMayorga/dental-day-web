@@ -1,0 +1,212 @@
+/* src/styles/calendar.css
+   Estilos tipo Plandok para FullCalendar.
+   Las variables se definen en el wrapper [data-fc-mode="light|dark"]
+   para que cascaden a todos los hijos .fc-*.
+*/
+
+/* ── Variables modo claro ──────────────────────────────────────── */
+[data-fc-mode="light"] {
+  /* Sobreescribe las vars internas de FullCalendar */
+  --fc-border-color:       rgba(0, 0, 0, 0.07);
+  --fc-today-bg-color:     rgba(28, 100, 173, 0.05);
+  --fc-neutral-bg-color:   transparent;
+  --fc-page-bg-color:      transparent;
+  --fc-now-indicator-color: #E53935;
+  --fc-highlight-color:    rgba(28, 100, 173, 0.08);
+  /* Variables propias */
+  --cal-header-label:      #42648A;
+  --cal-today-label:       #1C64AD;
+  --cal-slot-label:        #8FACC6;
+  --cal-toolbar-title:     #0C2A4A;
+  --cal-btn-shadow:        0 2px 6px rgba(28, 100, 173, 0.20);
+}
+
+/* ── Variables modo oscuro ─────────────────────────────────────── */
+[data-fc-mode="dark"] {
+  --fc-border-color:       rgba(255, 255, 255, 0.06);
+  --fc-today-bg-color:     rgba(44, 127, 212, 0.10);
+  --fc-neutral-bg-color:   transparent;
+  --fc-page-bg-color:      transparent;
+  --fc-now-indicator-color: #EF5350;
+  --fc-highlight-color:    rgba(44, 127, 212, 0.12);
+  --cal-header-label:      #9DB2CC;
+  --cal-today-label:       #5BA3E8;
+  --cal-slot-label:        #4A6A88;
+  --cal-toolbar-title:     #E8EEF6;
+  --cal-btn-shadow:        0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+/* ── Limpieza de bordes exteriores ─────────────────────────────── */
+.fc .fc-scrollgrid {
+  border: none !important;
+}
+.fc .fc-scrollgrid-section > td,
+.fc .fc-scrollgrid-section > th {
+  border: none;
+}
+.fc-theme-standard td,
+.fc-theme-standard th {
+  border-color: var(--fc-border-color);
+}
+
+/* ── Toolbar: título ────────────────────────────────────────────── */
+.fc .fc-toolbar-title {
+  font-size: 1.1rem !important;
+  font-weight: 700 !important;
+  color: var(--cal-toolbar-title) !important;
+  letter-spacing: -0.01em;
+}
+
+/* ── Botones de la toolbar ──────────────────────────────────────── */
+.fc .fc-button-primary {
+  background-color: #1C64AD !important;
+  border-color:     #1C64AD !important;
+  border-radius:    8px    !important;
+  font-size:        0.8rem !important;
+  padding:          5px 14px !important;
+  font-weight:      500    !important;
+  box-shadow:       var(--cal-btn-shadow) !important;
+  transition:       background-color 0.18s, box-shadow 0.18s !important;
+}
+.fc .fc-button-primary:hover:not(:disabled) {
+  background-color: #0C447C !important;
+  border-color:     #0C447C !important;
+  box-shadow:       0 4px 14px rgba(28, 100, 173, 0.30) !important;
+}
+.fc .fc-button-primary:not(:disabled).fc-button-active,
+.fc .fc-button-primary:not(:disabled):active {
+  background-color: #0C447C !important;
+  border-color:     #0C447C !important;
+}
+.fc .fc-button-primary:focus {
+  box-shadow: none !important;
+  outline: none !important;
+}
+/* Grupo de botones: elimina el efecto "pegado" predeterminado */
+.fc .fc-button-group > .fc-button {
+  border-radius: 8px !important;
+  margin-left: 2px;
+}
+.fc .fc-button-group > .fc-button:first-child {
+  margin-left: 0;
+}
+
+/* ── Cabecera de días ───────────────────────────────────────────── */
+.fc .fc-col-header-cell {
+  padding: 10px 0 8px !important;
+  background: transparent;
+  border-color: var(--fc-border-color);
+}
+.fc .fc-col-header-cell-cushion {
+  color: var(--cal-header-label) !important;
+  font-weight: 600;
+  font-size: 0.82rem;
+  text-decoration: none !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1.3;
+}
+/* Columna del día actual: resalta en azul */
+.fc .fc-day-today .fc-col-header-cell-cushion {
+  color: var(--cal-today-label) !important;
+}
+
+/* ── Slots de hora ──────────────────────────────────────────────── */
+.fc .fc-timegrid-slot {
+  height: 44px !important;
+  border-color: var(--fc-border-color);
+}
+/* Línea punteada en los medios (ej: 08:30, 09:30…) */
+.fc .fc-timegrid-slot-minor {
+  border-top-style: dotted !important;
+  border-color: var(--fc-border-color) !important;
+  opacity: 0.55;
+}
+
+/* Etiquetas de hora laterales (08:00, 09:00…) */
+.fc .fc-timegrid-slot-label-cushion {
+  color:       var(--cal-slot-label) !important;
+  font-size:   0.72rem !important;
+  font-weight: 500;
+  padding-right: 10px;
+}
+/* Quita borde de la celda vacía de la eje de horas */
+.fc .fc-timegrid-axis {
+  border-color: var(--fc-border-color) !important;
+}
+
+/* ── Indicador de hora actual ───────────────────────────────────── */
+.fc .fc-timegrid-now-indicator-line {
+  border-color:     var(--fc-now-indicator-color) !important;
+  border-top-width: 2px !important;
+}
+.fc .fc-timegrid-now-indicator-arrow {
+  border-color: var(--fc-now-indicator-color) !important;
+}
+
+/* ── Eventos ────────────────────────────────────────────────────── */
+.fc .fc-event {
+  border-radius: 8px  !important;
+  border:        none !important;
+  padding:       3px 7px !important;
+  box-shadow:    0 2px 8px rgba(0, 0, 0, 0.14) !important;
+  font-size:     0.77rem !important;
+  font-weight:   500;
+  cursor:        pointer;
+  transition:    box-shadow 0.15s, transform 0.15s;
+}
+.fc .fc-event:hover {
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.22) !important;
+  transform:  translateY(-1px);
+}
+.fc .fc-timegrid-event .fc-event-main {
+  padding: 2px 4px;
+}
+.fc .fc-event-title {
+  font-weight: 600;
+  overflow: hidden;
+}
+.fc .fc-event-time {
+  font-size: 0.69rem !important;
+  opacity: 0.88;
+  font-weight: 400;
+}
+
+/* ── Área de selección (arrastrar para crear) ───────────────────── */
+.fc .fc-highlight {
+  background:    var(--fc-highlight-color) !important;
+  border-radius: 6px;
+}
+
+/* ── Columna del día actual ─────────────────────────────────────── */
+.fc .fc-day-today {
+  background: var(--fc-today-bg-color) !important;
+}
+
+/* ── Vista mensual: números de día ─────────────────────────────── */
+.fc .fc-daygrid-day-number {
+  color:           var(--cal-header-label) !important;
+  font-size:       0.8rem;
+  text-decoration: none !important;
+  padding:         6px 8px;
+}
+.fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+  background:    #1C64AD;
+  color:         #ffffff !important;
+  border-radius: 50%;
+  width:         28px;
+  height:        28px;
+  display:       flex;
+  align-items:   center;
+  justify-content: center;
+  font-weight:   700;
+  margin:        4px;
+  padding:       0;
+}
+
+/* ── "Más eventos" en vista mensual ─────────────────────────────── */
+.fc .fc-daygrid-more-link {
+  color:       #1C64AD !important;
+  font-weight: 600;
+  font-size:   0.75rem;
+}

@@ -1,30 +1,34 @@
 // src/components/GlassCard.jsx
 // ============================================================
-// Tarjeta con efecto "liquid glass" (glassmorphism).
-// Componente reutilizable: se usa en login y como acento
-// sutil en otras partes de la app.
+// Tarjeta "liquid glass" que se adapta a modo claro/oscuro.
+// Más blur y sombra flotante independiente (estilo moderno).
 // ============================================================
 import { Box } from '@mui/material';
+import { useColorMode } from '../context/ThemeContext';
 
-/**
- * @param {object} props
- * @param {React.ReactNode} props.children - Contenido de la tarjeta
- * @param {number} props.blur - Intensidad del desenfoque (default 22)
- * @param {object} props.sx - Estilos adicionales de Material UI
- */
-const GlassCard = ({ children, blur = 22, sx = {} }) => {
+const GlassCard = ({ children, blur = 26, sx = {} }) => {
+  const { mode } = useColorMode();
+  const isDark = mode === 'dark';
+
   return (
     <Box
       sx={{
-        // El vidrio: blanco semitransparente + desenfoque del fondo
-        background: 'rgba(255, 255, 255, 0.45)',
-        backdropFilter: `blur(${blur}px) saturate(170%)`,
-        WebkitBackdropFilter: `blur(${blur}px) saturate(170%)`, // Safari
-        border: '1px solid rgba(255, 255, 255, 0.6)',
+        // Vidrio: claro = blanco translúcido; oscuro = oscuro translúcido
+        background: isDark
+          ? 'rgba(20, 28, 46, 0.55)'
+          : 'rgba(255, 255, 255, 0.45)',
+        backdropFilter: `blur(${blur}px) saturate(180%)`,
+        WebkitBackdropFilter: `blur(${blur}px) saturate(180%)`,
+        border: isDark
+          ? '1px solid rgba(255, 255, 255, 0.10)'
+          : '1px solid rgba(255, 255, 255, 0.6)',
         borderRadius: '22px',
-        boxShadow: '0 10px 40px rgba(20, 60, 110, 0.18)',
+        // Sombra flotante "independiente" (más difusa y profunda)
+        boxShadow: isDark
+          ? '0 16px 50px rgba(0, 0, 0, 0.45)'
+          : '0 16px 50px rgba(20, 60, 110, 0.18)',
         padding: { xs: 3, sm: 4 },
-        ...sx, // Permite personalizar desde donde se use
+        ...sx,
       }}
     >
       {children}
