@@ -12,6 +12,8 @@ import LoginPage from './pages/LoginPage';
 import HomePage from './pages/HomePage';
 import PatientsPage from './pages/PatientsPage';
 import AgendaPage from './pages/AgendaPage';
+import ComingSoon from './components/ComingSoon';
+import { MedicalServices, Receipt, Notifications, BarChart } from '@mui/icons-material';
 
 function App() {
   return (
@@ -32,6 +34,11 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/pacientes" element={<PatientsPage />} />
             <Route path="/agenda" element={<AgendaPage />} />
+
+            <Route path="/historias" element={<ComingSoon title="Historias Clínicas" icon={MedicalServices} description="El expediente clínico y el odontograma digital estarán disponibles muy pronto." />} />
+            <Route path="/facturacion" element={<ComingSoon title="Facturación" icon={Receipt} description="La gestión de pagos y comprobantes estará disponible muy pronto." />} />
+            <Route path="/notificaciones" element={<ComingSoon title="Notificaciones" icon={Notifications} description="Los recordatorios automáticos de citas estarán disponibles muy pronto." />} />
+            az<Route path="/reportes" element={<ComingSoon title="Reportes" icon={BarChart} description="El panel de indicadores y reportes estará disponible muy pronto." />} />
           </Route>
         </Routes>
       </BrowserRouter>

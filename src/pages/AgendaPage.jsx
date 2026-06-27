@@ -9,7 +9,7 @@ import {
   Box, Typography, Paper, FormControl,
   InputLabel, Select, MenuItem, CircularProgress,
   Dialog, DialogTitle, DialogContent, DialogActions,
-  Button, TextField, Alert, Stack,
+  Button, TextField, Alert, Stack, Autocomplete,
 } from '@mui/material';
 import FullCalendar from '@fullcalendar/react';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -21,6 +21,7 @@ import { getPatients } from '../api/patients';
 import { getTreatments } from '../api/treatments';
 import { useColorMode } from '../context/ThemeContext';
 import '../styles/calendar.css';
+import { translateStatus } from '../utils/appointmentStatus';
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -34,7 +35,7 @@ const addMinutes = (isoString, minutes) => {
 // Transforma una cita del backend al formato que espera FullCalendar
 const toCalendarEvent = (cita) => ({
   id: String(cita.id),
-  title: `${cita.patient_name} — ${cita.reason || cita.status_name}`,
+  title: `${cita.patient_name} — ${cita.reason || translateStatus(cita.status_name)}`,
   start: cita.scheduled_at,
   end: addMinutes(cita.scheduled_at, cita.duration_minutes),
   backgroundColor: cita.status_color,
@@ -42,7 +43,7 @@ const toCalendarEvent = (cita) => ({
   textColor: '#ffffff',
   extendedProps: {
     staffName: cita.staff_name,
-    statusName: cita.status_name,
+    statusName: translateStatus(cita.status_name),
   },
 });
 
@@ -111,13 +112,19 @@ export default function AgendaPage() {
 
   // ── Estado del diálogo de nueva cita ──────────────────────
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [patients, setPatients] = useState([]);
   const [treatments, setTreatments] = useState([]);
   const [form, setForm] = useState(FORM_EMPTY);
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // Evita recargar pacientes y tratamientos si ya se cargaron
+  // Autocomplete de paciente
+  const [patientOptions, setPatientOptions] = useState([]);
+  const [patientInput, setPatientInput] = useState('');
+  const [patientLoading, setPatientLoading] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const patientDebounce = useRef(null);
+
+  // Evita recargar tratamientos si ya se cargaron
   const catalogsLoaded = useRef(false);
 
   // Referencia al calendario para llamar unselect() tras arrastrar
@@ -132,17 +139,32 @@ export default function AgendaPage() {
       .catch(() => setDentists([]));
   }, []);
 
-  // Pacientes y tratamientos: se cargan la primera vez que se abre el diálogo
+  // Tratamientos: se cargan la primera vez que se abre el diálogo
   const loadCatalogs = useCallback(async () => {
     if (catalogsLoaded.current) return;
     catalogsLoaded.current = true;
     try {
-      const [pats, treats] = await Promise.all([getPatients(), getTreatments()]);
-      setPatients(pats);
+      const treats = await getTreatments();
       setTreatments(treats);
     } catch {
-      // Los selects quedarán vacíos; el usuario puede cerrar y reintentar
+      // El select quedará vacío; el usuario puede cerrar y reintentar
     }
+  }, []);
+
+  // Búsqueda de pacientes con debounce: llama al servidor tras 400 ms de inactividad
+  const searchPatients = useCallback((text) => {
+    clearTimeout(patientDebounce.current);
+    patientDebounce.current = setTimeout(async () => {
+      setPatientLoading(true);
+      try {
+        const results = await getPatients(text);
+        setPatientOptions(results);
+      } catch {
+        setPatientOptions([]);
+      } finally {
+        setPatientLoading(false);
+      }
+    }, 400);
   }, []);
 
   // ── Carga de citas ─────────────────────────────────────────
@@ -170,6 +192,9 @@ export default function AgendaPage() {
   const openDialog = useCallback((dateStr) => {
     setForm({ ...FORM_EMPTY, scheduled_at: toDateTimeLocal(dateStr) });
     setFormError('');
+    setSelectedPatient(null);
+    setPatientInput('');
+    setPatientOptions([]);
     loadCatalogs();
     setDialogOpen(true);
   }, [loadCatalogs]);
@@ -310,21 +335,43 @@ export default function AgendaPage() {
               </Alert>
             )}
 
-            {/* Paciente */}
-            <FormControl fullWidth size="small">
-              <InputLabel>Paciente *</InputLabel>
-              <Select
-                label="Paciente *"
-                value={form.patient_id}
-                onChange={handleFormChange('patient_id')}
-              >
-                {patients.map((p) => (
-                  <MenuItem key={p.id} value={p.id}>
-                    {p.first_name} {p.last_name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            {/* Paciente — búsqueda asíncrona en el servidor */}
+            <Autocomplete
+              size="small"
+              fullWidth
+              options={patientOptions}
+              value={selectedPatient}
+              inputValue={patientInput}
+              loading={patientLoading}
+              noOptionsText={patientInput.length === 0 ? 'Escribe para buscar' : 'Sin resultados'}
+              filterOptions={(x) => x}
+              getOptionLabel={(option) => `${option.first_name} ${option.last_name}`}
+              isOptionEqualToValue={(option, value) => option.id === value.id}
+              onInputChange={(_, newInput) => {
+                setPatientInput(newInput);
+                searchPatients(newInput);
+              }}
+              onChange={(_, newValue) => {
+                setSelectedPatient(newValue);
+                setForm((prev) => ({ ...prev, patient_id: newValue?.id ?? '' }));
+              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Paciente *"
+                  size="small"
+                  InputProps={{
+                    ...params.InputProps,
+                    endAdornment: (
+                      <>
+                        {patientLoading && <CircularProgress size={16} sx={{ mr: 1 }} />}
+                        {params.InputProps?.endAdornment}
+                      </>
+                    ),
+                  }}
+                />
+              )}
+            />
 
             {/* Odontólogo */}
             <FormControl fullWidth size="small">
