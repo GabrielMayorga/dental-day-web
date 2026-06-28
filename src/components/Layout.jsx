@@ -29,9 +29,9 @@ const Layout = () => {
   const visibleItems = navItems.filter((item) => item.roles.includes(user?.role));
 
   // Colores de superficie según el modo
-  const sidebarBg = isDark ? 'rgba(14, 22, 38, 0.85)' : 'rgba(255, 255, 255, 0.8)';
-  const headerBg  = isDark ? 'rgba(14, 22, 38, 0.7)'  : 'rgba(255, 255, 255, 0.7)';
-  const borderCol = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+  const sidebarBg = isDark ? 'rgba(22,27,34,0.90)' : 'rgba(255,255,255,0.80)';
+  const headerBg  = isDark ? 'rgba(22,27,34,0.75)' : 'rgba(255,255,255,0.75)';
+  const borderCol = isDark ? '#30363D'             : 'rgba(0,0,0,0.06)';
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
@@ -52,7 +52,7 @@ const Layout = () => {
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 2.5 }}>
           <Box sx={{
             width: 44, height: 44, borderRadius: '14px',
-            background: 'linear-gradient(135deg, #2B7FD4, #1C64AD)',
+            background: 'linear-gradient(135deg, #2563EB, #0A1F44)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <LocalHospital sx={{ color: '#fff', fontSize: 24 }} />
@@ -72,12 +72,12 @@ const Layout = () => {
                   display: 'flex', flexDirection: 'column', alignItems: 'center',
                   gap: 0.3, py: 1.2, borderRadius: '14px', cursor: 'pointer',
                   background: active
-                    ? (isDark ? 'rgba(43,127,212,0.22)' : 'rgba(43,127,212,0.12)')
+                    ? (isDark ? 'rgba(37,99,235,0.20)' : 'rgba(37,99,235,0.12)')
                     : 'transparent',
-                  color: active ? '#5BA3E8' : (isDark ? '#9DB2CC' : '#7089A5'),
+                  color: active ? '#2563EB' : (isDark ? '#9DA7B3' : '#5A6B85'),
                   transition: 'all 0.15s',
                   '&:hover': {
-                    background: isDark ? 'rgba(43,127,212,0.14)' : 'rgba(43,127,212,0.08)',
+                    background: isDark ? 'rgba(37,99,235,0.14)' : 'rgba(37,99,235,0.08)',
                   },
                 }}
               >
@@ -108,7 +108,7 @@ const Layout = () => {
             </Typography>
             <Tooltip title="Cuenta">
               <IconButton onClick={(e) => setAnchorEl(e.currentTarget)}>
-                <Avatar sx={{ width: 34, height: 34, bgcolor: '#1C64AD', fontSize: 14 }}>
+                <Avatar sx={{ width: 34, height: 34, bgcolor: '#2563EB', fontSize: 14 }}>
                   {user?.email?.[0]?.toUpperCase()}
                 </Avatar>
               </IconButton>

@@ -1,55 +1,56 @@
 // src/theme/theme.js
 // ============================================================
-// Genera el tema de Material UI según el modo (claro u oscuro).
-// Define dos paletas; MUI adapta todos los componentes solo.
+// Tema central. Claro estilo Plandok (azul marino + grises
+// suaves), oscuro estilo GitHub. Alto contraste y legibilidad.
 // ============================================================
 import { createTheme } from '@mui/material/styles';
 
-// Recibe el modo ('light' | 'dark') y devuelve el tema completo
 export const getTheme = (mode) =>
   createTheme({
     palette: {
       mode,
       primary: {
-        main: '#2B7FD4',
-        light: '#5BA3E8',
-        dark: '#1C64AD',
+        main: '#0A1F44',      // azul marino Plandok
+        light: '#1C3A6E',
+        dark: '#061229',
+        contrastText: '#FFFFFF',
       },
       secondary: {
-        main: '#1D9E75',
+        main: '#2563EB',      // azul vivo para botones/acentos
       },
-      // Colores que cambian según el modo
       ...(mode === 'light'
         ? {
-            // ── MODO CLARO ──
+            // ── MODO CLARO (Plandok) ──
             background: {
-              default: '#EEF4FB',
+              default: '#F4F6FA',   // gris azulado suave (no blanco puro)
               paper: '#FFFFFF',
             },
             text: {
-              primary: '#0C2A4A',
-              secondary: '#42648A',
+              primary: '#0A1F44',   // azul marino oscuro = alto contraste
+              secondary: '#5A6B85',
             },
+            divider: 'rgba(10,31,68,0.10)',
           }
         : {
-            // ── MODO OSCURO ──
+            // ── MODO OSCURO (GitHub) ──
             background: {
-              default: '#0B1220',   // fondo casi negro azulado
-              paper: '#141C2E',     // superficies oscuras
+              default: '#0D1117',   // fondo GitHub
+              paper: '#161B22',     // superficies GitHub
             },
             text: {
-              primary: '#E8EEF6',
-              secondary: '#9DB2CC',
+              primary: '#E6EDF3',   // texto claro que resalta
+              secondary: '#9DA7B3',
             },
+            divider: '#30363D',
           }),
     },
 
     typography: {
       fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-      h4: { fontWeight: 600 },
-      h5: { fontWeight: 600 },
+      h4: { fontWeight: 700 },
+      h5: { fontWeight: 700 },
       h6: { fontWeight: 600 },
-      button: { textTransform: 'none', fontWeight: 500 },
+      button: { textTransform: 'none', fontWeight: 600 },
     },
 
     shape: { borderRadius: 14 },
@@ -58,6 +59,11 @@ export const getTheme = (mode) =>
       MuiButton: {
         styleOverrides: {
           root: { borderRadius: 12, padding: '10px 20px' },
+          // Botón principal: azul vivo, bien visible en ambos modos
+          containedPrimary: {
+            backgroundColor: '#2563EB',
+            '&:hover': { backgroundColor: '#1D4FD7' },
+          },
         },
       },
     },

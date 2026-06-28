@@ -48,7 +48,7 @@ const HEADER_CELL_SX = {
   fontWeight: 600,
   color: 'text.secondary',
   fontSize: 13,
-  borderBottom: '2px solid rgba(28,100,173,0.12)',
+  borderBottom: '2px solid rgba(10,31,68,0.10)',
 };
 
 const PatientsPage = () => {
@@ -57,9 +57,9 @@ const PatientsPage = () => {
   const isDark = mode === 'dark';
 
   // Fondo glass adaptado al modo
-  const glassBg = isDark ? 'rgba(20, 28, 46, 0.65)' : 'rgba(255,255,255,0.65)';
+  const glassBg = isDark ? 'rgba(22,27,34,0.70)' : 'rgba(255,255,255,0.70)';
   const glassBorder = isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(255,255,255,0.6)';
-  const dialogBg = isDark ? 'rgba(20, 28, 46, 0.92)' : 'rgba(255,255,255,0.92)';
+  const dialogBg = isDark ? 'rgba(22,27,34,0.92)' : 'rgba(255,255,255,0.92)';
 
   // ── Estado de la lista ───────────────────────────────────────
   const [patients, setPatients]       = useState([]);
@@ -236,7 +236,7 @@ const PatientsPage = () => {
               <Search sx={{ color: 'text.secondary', fontSize: 20 }} />
             </InputAdornment>
           ),
-          sx: { borderRadius: '12px', background: isDark ? 'rgba(20,28,46,0.60)' : 'rgba(255,255,255,0.7)' },
+          sx: { borderRadius: '12px', background: isDark ? 'rgba(22,27,34,0.65)' : 'rgba(255,255,255,0.7)' },
         }}
       />
 
@@ -255,7 +255,7 @@ const PatientsPage = () => {
         <TableContainer>
           <Table>
             <TableHead>
-              <TableRow sx={{ background: 'rgba(28,100,173,0.04)' }}>
+              <TableRow sx={{ background: 'rgba(10,31,68,0.04)' }}>
                 <TableCell sx={HEADER_CELL_SX}>Nombre completo</TableCell>
                 <TableCell sx={HEADER_CELL_SX}>Teléfono</TableCell>
                 <TableCell sx={HEADER_CELL_SX}>Ciudad</TableCell>
@@ -271,7 +271,7 @@ const PatientsPage = () => {
               {loadingList && (
                 <TableRow>
                   <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
-                    <CircularProgress size={32} sx={{ color: '#1C64AD' }} />
+                    <CircularProgress size={32} sx={{ color: 'secondary.main' }} />
                   </TableCell>
                 </TableRow>
               )}
@@ -316,7 +316,7 @@ const PatientsPage = () => {
                       <IconButton
                         size="small"
                         onClick={() => handleOpenEdit(p)}
-                        sx={{ color: '#1C64AD' }}
+                        sx={{ color: 'secondary.main' }}
                       >
                         <Edit fontSize="small" />
                       </IconButton>

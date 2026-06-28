@@ -57,7 +57,7 @@ const EMPTY_RECORD = {
 // ── Subcomponente: fila de dato del paciente ──────────────────
 const DataRow = ({ icon: Icon, label, value }) => (
   <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
-    <Icon sx={{ color: '#2B7FD4', mt: 0.2, fontSize: 20, flexShrink: 0 }} />
+    <Icon sx={{ color: '#2563EB', mt: 0.2, fontSize: 20, flexShrink: 0 }} />
     <Box>
       <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', lineHeight: 1 }}>
         {label}
@@ -93,10 +93,10 @@ const PatientDetailPage = () => {
   const isDark       = mode === 'dark';
 
   // Estilos glass adaptados al modo de color
-  const glassBg     = isDark ? 'rgba(20, 28, 46, 0.65)' : 'rgba(255,255,255,0.65)';
+  const glassBg     = isDark ? 'rgba(22,27,34,0.70)' : 'rgba(255,255,255,0.70)';
   const glassBorder = isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(255,255,255,0.6)';
-  const dialogBg    = isDark ? 'rgba(20, 28, 46, 0.92)' : 'rgba(255,255,255,0.92)';
-  const dividerClr  = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(28,100,173,0.08)';
+  const dialogBg    = isDark ? 'rgba(22,27,34,0.92)' : 'rgba(255,255,255,0.92)';
+  const dividerClr  = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(10,31,68,0.08)';
 
   // Solo admin y dentist pueden ver la historia clínica
   const canViewHistory = user?.role === 'admin' || user?.role === 'dentist';
@@ -209,7 +209,7 @@ const PatientDetailPage = () => {
   if (loadingPatient) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 320 }}>
-        <CircularProgress sx={{ color: '#1C64AD' }} />
+        <CircularProgress sx={{ color: 'secondary.main' }} />
       </Box>
     );
   }
@@ -241,7 +241,7 @@ const PatientDetailPage = () => {
           mb: 3,
           color: 'text.secondary',
           borderRadius: '12px',
-          '&:hover': { background: 'rgba(28,100,173,0.07)' },
+          '&:hover': { background: 'rgba(37,99,235,0.08)' },
         }}
       >
         Volver a Pacientes
@@ -295,7 +295,7 @@ const PatientDetailPage = () => {
         {/* Encabezado de sección */}
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2.5 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <MedicalInformation sx={{ color: '#2B7FD4', fontSize: 24 }} />
+            <MedicalInformation sx={{ color: '#2563EB', fontSize: 24 }} />
             <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
               Historia clínica
             </Typography>
@@ -330,7 +330,7 @@ const PatientDetailPage = () => {
               gap: 1.5,
             }}
           >
-            <Lock sx={{ fontSize: 48, color: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(28,100,173,0.15)' }} />
+            <Lock sx={{ fontSize: 48, color: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(37,99,235,0.20)' }} />
             <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>
               Acceso restringido
             </Typography>
@@ -344,7 +344,7 @@ const PatientDetailPage = () => {
         {/* Cargando registros */}
         {canViewHistory && loadingRecords && (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-            <CircularProgress size={32} sx={{ color: '#1C64AD' }} />
+            <CircularProgress size={32} sx={{ color: 'secondary.main' }} />
           </Box>
         )}
 
@@ -365,7 +365,7 @@ const PatientDetailPage = () => {
               gap: 1.5,
             }}
           >
-            <LocalHospital sx={{ fontSize: 42, color: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(28,100,173,0.15)' }} />
+            <LocalHospital sx={{ fontSize: 42, color: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(37,99,235,0.20)' }} />
             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
               Aún no hay registros clínicos para este paciente.
             </Typography>
@@ -406,8 +406,8 @@ const PatientDetailPage = () => {
                     label={rec.staff_name || 'Sin asignar'}
                     size="small"
                     sx={{
-                      background: 'rgba(43,127,212,0.12)',
-                      color: '#2B7FD4',
+                      background: 'rgba(37,99,235,0.12)',
+                      color: '#2563EB',
                       fontWeight: 600,
                       fontSize: 12,
                     }}

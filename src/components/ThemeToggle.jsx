@@ -34,7 +34,7 @@ const ThemeToggle = ({ floating = false }) => {
             ? '1px solid rgba(255,255,255,0.12)'
             : '1px solid rgba(255,255,255,0.8)',
           boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
-          color: isDark ? '#FFD166' : '#42648A',  // sol amarillo / luna azulada
+          color: isDark ? '#FFD166' : '#5A6B85',  // sol amarillo / luna gris-azulado
           '&:hover': {
             background: isDark ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.9)',
           },

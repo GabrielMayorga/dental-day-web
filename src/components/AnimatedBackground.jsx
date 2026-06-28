@@ -25,12 +25,12 @@ const AnimatedBackground = ({ children }) => {
 
   // Gradiente del fondo según el modo
   const bgGradient = isDark
-    ? 'linear-gradient(135deg, #0B1220 0%, #0E1626 50%, #0B1220 100%)'
-    : 'linear-gradient(135deg, #DCEBFB 0%, #E8F5F0 45%, #DDE9FA 100%)';
+    ? 'linear-gradient(135deg, #090D14 0%, #0D1117 50%, #090D14 100%)'
+    : 'linear-gradient(135deg, #EDF1FA 0%, #F4F6FA 50%, #EAF0F9 100%)';
 
   // Colores de las manchas según el modo
   const blobs = isDark
-    ? ['#3B2F87', '#1C64AD', '#0E5A47']   // morados/azules profundos (como tu portfolio)
+    ? ['#1A1070', '#2563EB', '#0E5A47']   // morados/azul Plandok/verde profundos
     : ['#7FB8E8', '#6FD3B8', '#9AA9F0'];
 
   return (

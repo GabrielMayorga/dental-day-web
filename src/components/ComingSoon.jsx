@@ -41,7 +41,7 @@ const ComingSoon = ({ title, icon: Icon = AutoAwesome, description }) => {
         <Box sx={{
           position: 'absolute', inset: 0, margin: 'auto',
           width: 140, height: 140, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(43,127,212,0.5), transparent 70%)',
+          background: 'radial-gradient(circle, rgba(37,99,235,0.5), transparent 70%)',
           filter: 'blur(20px)',
           animation: `${glow} 4s ease-in-out infinite`,
         }} />
@@ -50,13 +50,13 @@ const ComingSoon = ({ title, icon: Icon = AutoAwesome, description }) => {
           position: 'relative',
           width: 110, height: 110, borderRadius: '28px',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: isDark ? 'rgba(20,28,46,0.6)' : 'rgba(255,255,255,0.6)',
+          background: isDark ? 'rgba(22,27,34,0.70)' : 'rgba(255,255,255,0.65)',
           backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
           border: isDark ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(255,255,255,0.7)',
           boxShadow: '0 16px 50px rgba(20,60,110,0.25)',
           animation: `${breathe} 4s ease-in-out infinite`,
         }}>
-          <Icon sx={{ fontSize: 52, color: '#2B7FD4' }} />
+          <Icon sx={{ fontSize: 52, color: '#2563EB' }} />
         </Box>
       </Box>
 
@@ -64,11 +64,11 @@ const ComingSoon = ({ title, icon: Icon = AutoAwesome, description }) => {
       <Box sx={{
         display: 'inline-flex', alignItems: 'center', gap: 0.7,
         px: 2, py: 0.6, mb: 2, borderRadius: '999px',
-        background: isDark ? 'rgba(43,127,212,0.18)' : 'rgba(43,127,212,0.10)',
-        border: '1px solid rgba(43,127,212,0.3)',
+        background: isDark ? 'rgba(37,99,235,0.18)' : 'rgba(37,99,235,0.10)',
+        border: '1px solid rgba(37,99,235,0.30)',
       }}>
-        <AutoAwesome sx={{ fontSize: 16, color: '#2B7FD4' }} />
-        <Typography sx={{ fontSize: 13, fontWeight: 600, color: '#2B7FD4' }}>
+        <AutoAwesome sx={{ fontSize: 16, color: '#2563EB' }} />
+        <Typography sx={{ fontSize: 13, fontWeight: 600, color: '#2563EB' }}>
           Próximamente
         </Typography>
       </Box>

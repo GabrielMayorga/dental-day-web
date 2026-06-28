@@ -10,6 +10,7 @@ import {
   InputLabel, Select, MenuItem, CircularProgress,
   Dialog, DialogTitle, DialogContent, DialogActions,
   Button, TextField, Alert, Stack, Autocomplete,
+  Chip, Divider,
 } from '@mui/material';
 import FullCalendar from '@fullcalendar/react';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -44,6 +45,11 @@ const toCalendarEvent = (cita) => ({
   extendedProps: {
     staffName: cita.staff_name,
     statusName: translateStatus(cita.status_name),
+    statusColor: cita.status_color,
+    staff_id: cita.staff_id,
+    patient_name: cita.patient_name,
+    reason: cita.reason,
+    duration_minutes: cita.duration_minutes,
   },
 });
 
@@ -54,6 +60,16 @@ const toDateTimeLocal = (isoStr) => (isoStr ? isoStr.substring(0, 16) : '');
 // Convierte el valor del input datetime-local al ISO que espera el backend
 // Ejemplo: "2026-06-25T11:00" → "2026-06-25T11:00:00"
 const toScheduledAt = (dtLocal) => (dtLocal ? `${dtLocal}:00` : '');
+
+// Formatea un ISO a fecha legible en español: "miércoles, 25 de junio de 2026"
+const formatDateES = (isoStr) =>
+  new Date(isoStr).toLocaleDateString('es-ES', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+  });
+
+// Formatea un ISO a hora en formato 24 h: "14:30"
+const formatTimeES = (isoStr) =>
+  new Date(isoStr).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false });
 
 // ── Localización en español ───────────────────────────────────
 // FullCalendar no incluye locales en el paquete base; se
@@ -87,19 +103,19 @@ export default function AgendaPage() {
 
   // ── Estilos glass — dependen del modo ────────────────────────
   const glassPaperSx = {
-    background: isDark ? 'rgba(20, 28, 46, 0.70)' : 'rgba(255, 255, 255, 0.72)',
+    background: isDark ? 'rgba(22,27,34,0.70)' : 'rgba(255,255,255,0.72)',
     backdropFilter: 'blur(16px)',
     WebkitBackdropFilter: 'blur(16px)',
-    border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(28, 100, 173, 0.10)',
+    border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(10,31,68,0.10)',
     borderRadius: 3,
     p: { xs: 2, md: 3 },
   };
 
   const dialogPaperSx = {
-    background: isDark ? 'rgba(20, 28, 46, 0.92)' : 'rgba(240, 247, 255, 0.94)',
+    background: isDark ? 'rgba(22,27,34,0.92)' : 'rgba(255,255,255,0.94)',
     backdropFilter: 'blur(20px)',
     WebkitBackdropFilter: 'blur(20px)',
-    border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(28, 100, 173, 0.12)',
+    border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(10,31,68,0.10)',
     borderRadius: '16px',
     minWidth: { xs: '90vw', sm: '480px' },
   };
@@ -109,6 +125,10 @@ export default function AgendaPage() {
   const [dentists, setDentists] = useState([]);
   const [selectedStaff, setSelectedStaff] = useState('');   // '' = Todos
   const [loading, setLoading] = useState(true);
+
+  // ── Estado del diálogo de detalle de cita ─────────────────
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   // ── Estado del diálogo de nueva cita ──────────────────────
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -211,6 +231,12 @@ export default function AgendaPage() {
     calendarRef.current?.getApi().unselect();
   }, [openDialog]);
 
+  // Clic en una cita existente: abre el diálogo de detalle
+  const handleEventClick = useCallback((info) => {
+    setSelectedEvent(info.event);
+    setDetailOpen(true);
+  }, []);
+
   // ── Handlers del formulario ────────────────────────────────
 
   // Devuelve un handler onChange para cualquier campo del formulario
@@ -283,7 +309,7 @@ export default function AgendaPage() {
       <Paper elevation={0} sx={glassPaperSx}>
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-            <CircularProgress sx={{ color: '#1C64AD' }} />
+            <CircularProgress sx={{ color: 'secondary.main' }} />
           </Box>
         ) : (
           <FullCalendar
@@ -312,9 +338,135 @@ export default function AgendaPage() {
             selectMirror
             dateClick={handleDateClick}
             select={handleSelect}
+            eventClick={handleEventClick}
           />
         )}
       </Paper>
+
+      {/* ── Diálogo: detalle de cita existente ──────────────── */}
+      {selectedEvent && (() => {
+        const ep = selectedEvent.extendedProps;
+        // Busca el dentista completo en la lista; fallback al nombre guardado
+        const dentist = dentists.find((d) => String(d.id) === String(ep.staff_id));
+
+        return (
+          <Dialog
+            open={detailOpen}
+            onClose={() => setDetailOpen(false)}
+            PaperProps={{ sx: dialogPaperSx }}
+          >
+            <DialogTitle sx={{ color: 'text.primary', fontWeight: 700, pb: 0.5 }}>
+              {ep.patient_name || selectedEvent.title}
+            </DialogTitle>
+
+            <DialogContent>
+              <Stack spacing={1.5} sx={{ mt: 1 }}>
+
+                {/* Fecha y hora */}
+                <Box>
+                  <Typography variant="caption" color="text.secondary">
+                    Fecha y hora
+                  </Typography>
+                  <Typography variant="body1" sx={{ color: 'text.primary', fontWeight: 500 }}>
+                    {formatDateES(selectedEvent.startStr)} · {formatTimeES(selectedEvent.startStr)}
+                  </Typography>
+                </Box>
+
+                {/* Duración */}
+                {ep.duration_minutes && (
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Duración
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: 'text.primary' }}>
+                      {ep.duration_minutes} min
+                    </Typography>
+                  </Box>
+                )}
+
+                {/* Estado con chip de color */}
+                <Box>
+                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
+                    Estado
+                  </Typography>
+                  <Chip
+                    label={ep.statusName}
+                    size="small"
+                    sx={{
+                      backgroundColor: ep.statusColor || '#2563EB',
+                      color: '#fff',
+                      fontWeight: 600,
+                      fontSize: '0.75rem',
+                    }}
+                  />
+                </Box>
+
+                {/* Motivo */}
+                {ep.reason && (
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Motivo
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'text.primary' }}>
+                      {ep.reason}
+                    </Typography>
+                  </Box>
+                )}
+
+                <Divider sx={{ my: 0.5 }} />
+
+                {/* Sección odontólogo */}
+                <Box>
+                  <Typography
+                    variant="caption"
+                    sx={{ color: '#2563EB', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}
+                  >
+                    Odontólogo
+                  </Typography>
+                  {dentist ? (
+                    <Stack spacing={0.25} sx={{ mt: 0.5 }}>
+                      <Typography variant="body1" sx={{ color: 'text.primary', fontWeight: 600 }}>
+                        {dentist.first_name} {dentist.last_name}
+                      </Typography>
+                      {dentist.speciality && (
+                        <Typography variant="body2" color="text.secondary">
+                          {dentist.speciality}
+                        </Typography>
+                      )}
+                      {dentist.email && (
+                        <Typography variant="body2" color="text.secondary">
+                          {dentist.email}
+                        </Typography>
+                      )}
+                      {dentist.phone && (
+                        <Typography variant="body2" color="text.secondary">
+                          {dentist.phone}
+                        </Typography>
+                      )}
+                    </Stack>
+                  ) : (
+                    // Fallback: al menos el nombre guardado en la cita
+                    <Typography variant="body1" sx={{ color: 'text.primary', mt: 0.5 }}>
+                      {ep.staffName || '—'}
+                    </Typography>
+                  )}
+                </Box>
+
+              </Stack>
+            </DialogContent>
+
+            <DialogActions sx={{ px: 3, pb: 2.5 }}>
+              <Button
+                onClick={() => setDetailOpen(false)}
+                variant="contained"
+                sx={{ borderRadius: '8px', backgroundColor: '#2563EB', '&:hover': { backgroundColor: '#1d4ed8' } }}
+              >
+                Cerrar
+              </Button>
+            </DialogActions>
+          </Dialog>
+        );
+      })()}
 
       {/* ── Diálogo: formulario de nueva cita ────────────────── */}
       <Dialog
@@ -441,11 +593,7 @@ export default function AgendaPage() {
             onClick={handleSave}
             disabled={saving}
             variant="contained"
-            sx={{
-              background: '#1C64AD',
-              borderRadius: '8px',
-              '&:hover': { background: '#0C447C' },
-            }}
+            sx={{ borderRadius: '8px' }}
           >
             {saving ? 'Guardando…' : 'Guardar cita'}
           </Button>
