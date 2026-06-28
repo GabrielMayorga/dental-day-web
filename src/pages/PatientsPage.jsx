@@ -4,6 +4,7 @@
 // desactivación de pacientes. Vive dentro del Layout.
 // ============================================================
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useColorMode } from '../context/ThemeContext';
 import {
   Box, Typography, Button, TextField, InputAdornment,
@@ -11,7 +12,7 @@ import {
   CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions,
   MenuItem, Alert, Paper, IconButton, Tooltip,
 } from '@mui/material';
-import { Search, PersonAdd, Edit, Delete } from '@mui/icons-material';
+import { Search, PersonAdd, Edit, Delete, Visibility } from '@mui/icons-material';
 import { getPatients, createPatient, updatePatient, deletePatient } from '../api/patients';
 
 // ── Opciones de los selects ──────────────────────────────────
@@ -51,6 +52,7 @@ const HEADER_CELL_SX = {
 };
 
 const PatientsPage = () => {
+  const navigate = useNavigate();
   const { mode } = useColorMode();
   const isDark = mode === 'dark';
 
@@ -258,8 +260,7 @@ const PatientsPage = () => {
                 <TableCell sx={HEADER_CELL_SX}>Teléfono</TableCell>
                 <TableCell sx={HEADER_CELL_SX}>Ciudad</TableCell>
                 <TableCell sx={HEADER_CELL_SX}>Tipo de sangre</TableCell>
-                {/* Columna nueva: acciones por fila */}
-                <TableCell sx={{ ...HEADER_CELL_SX, width: 96, textAlign: 'center' }}>
+                <TableCell sx={{ ...HEADER_CELL_SX, width: 128, textAlign: 'center' }}>
                   Acciones
                 </TableCell>
               </TableRow>
@@ -300,8 +301,17 @@ const PatientsPage = () => {
                   <TableCell sx={{ color: 'text.secondary' }}>{p.city  || '—'}</TableCell>
                   <TableCell sx={{ color: 'text.secondary' }}>{p.blood_type || '—'}</TableCell>
 
-                  {/* Acciones: editar y desactivar */}
+                  {/* Acciones: ver detalle, editar y desactivar */}
                   <TableCell align="center" sx={{ py: 0.5 }}>
+                    <Tooltip title="Ver detalle">
+                      <IconButton
+                        size="small"
+                        onClick={() => navigate(`/pacientes/${p.id ?? p._id}`)}
+                        sx={{ color: '#1D9E75' }}
+                      >
+                        <Visibility fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
                     <Tooltip title="Editar">
                       <IconButton
                         size="small"
