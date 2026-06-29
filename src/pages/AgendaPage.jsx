@@ -16,7 +16,7 @@ import FullCalendar from '@fullcalendar/react';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import { getAppointments, createAppointment } from '../api/appointments';
+import { getAppointments, createAppointment, changeAppointmentStatus } from '../api/appointments';
 import { getDentists } from '../api/staff';
 import { getPatients } from '../api/patients';
 import { getTreatments } from '../api/treatments';
@@ -45,8 +45,10 @@ const toCalendarEvent = (cita) => ({
   extendedProps: {
     staffName: cita.staff_name,
     statusName: translateStatus(cita.status_name),
+    status_name: cita.status_name,   // nombre técnico (scheduled, confirmed, …) para lógica de transiciones
     statusColor: cita.status_color,
     staff_id: cita.staff_id,
+    patient_id: cita.patient_id,
     patient_name: cita.patient_name,
     reason: cita.reason,
     duration_minutes: cita.duration_minutes,
@@ -129,6 +131,12 @@ export default function AgendaPage() {
   // ── Estado del diálogo de detalle de cita ─────────────────
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [detailOpen, setDetailOpen] = useState(false);
+
+  // ── Estado del cambio de estado de cita ───────────────────
+  const [statusChanging, setStatusChanging] = useState(false);
+  const [statusError, setStatusError]       = useState('');
+  const [showCancelForm, setShowCancelForm] = useState(false);
+  const [cancelReason, setCancelReason]     = useState('');
 
   // ── Estado del diálogo de nueva cita ──────────────────────
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -236,6 +244,80 @@ export default function AgendaPage() {
     setSelectedEvent(info.event);
     setDetailOpen(true);
   }, []);
+
+  // Limpia el estado de cambio de estado cuando se selecciona una cita diferente
+  useEffect(() => {
+    setStatusError('');
+    setShowCancelForm(false);
+    setCancelReason('');
+    setStatusChanging(false);
+  }, [selectedEvent]);
+
+  // Cierra el diálogo de detalle y reinicia el estado de cambio de estado
+  const handleDetailClose = useCallback(() => {
+    if (statusChanging) return;
+    setDetailOpen(false);
+    setStatusError('');
+    setShowCancelForm(false);
+    setCancelReason('');
+  }, [statusChanging]);
+
+  // Cambia el estado de la cita seleccionada, luego cierra y recarga
+  const handleStatusChange = useCallback(async (newStatus, reason) => {
+    setStatusChanging(true);
+    setStatusError('');
+    try {
+      await changeAppointmentStatus(selectedEvent.id, newStatus, reason);
+      handleDetailClose();
+      await fetchEvents();
+    } catch (err) {
+      setStatusError(
+        err.response?.data?.error || 'Error al cambiar el estado. Inténtalo de nuevo.',
+      );
+    } finally {
+      setStatusChanging(false);
+    }
+  }, [selectedEvent, handleDetailClose, fetchEvents]);
+
+  // Abre el formulario de nueva cita prellenado con datos de la cita original.
+  // Solo disponible para citas canceladas o con estado 'no_show'.
+  // La cita original NO se modifica; únicamente se crea una nueva.
+  const handleReschedule = useCallback(() => {
+    const ep = selectedEvent.extendedProps;
+
+    // Cierra el diálogo de detalle sin alterar la cita existente
+    setDetailOpen(false);
+    setStatusError('');
+    setShowCancelForm(false);
+    setCancelReason('');
+
+    // Objeto paciente sintético para que el Autocomplete muestre el nombre guardado
+    // sin necesidad de hacer una búsqueda previa al servidor.
+    const syntheticPatient = {
+      id:         ep.patient_id,
+      first_name: ep.patient_name || '',
+      last_name:  '',
+    };
+
+    // Prellena el formulario: paciente y odontólogo de la cita original,
+    // motivo conservado si existía. El usuario elige nueva fecha y tratamiento.
+    setForm({
+      ...FORM_EMPTY,
+      patient_id: ep.patient_id,
+      staff_id:   ep.staff_id,
+      reason:     ep.reason || '',
+    });
+    setFormError('');
+
+    // Inyecta el paciente sintético en el Autocomplete para evitar el warning
+    // de MUI sobre un valor seleccionado que no está en las opciones.
+    setSelectedPatient(syntheticPatient);
+    setPatientInput(ep.patient_name || '');
+    setPatientOptions([syntheticPatient]);
+
+    loadCatalogs();
+    setDialogOpen(true);
+  }, [selectedEvent, loadCatalogs]);
 
   // ── Handlers del formulario ────────────────────────────────
 
@@ -352,7 +434,7 @@ export default function AgendaPage() {
         return (
           <Dialog
             open={detailOpen}
-            onClose={() => setDetailOpen(false)}
+            onClose={handleDetailClose}
             PaperProps={{ sx: dialogPaperSx }}
           >
             <DialogTitle sx={{ color: 'text.primary', fontWeight: 700, pb: 0.5 }}>
@@ -452,12 +534,155 @@ export default function AgendaPage() {
                   )}
                 </Box>
 
+                {/* ── Sección: cambiar estado ─────────────────────── */}
+                <Box>
+                  <Divider sx={{ mb: 1.5 }} />
+
+                  {/* Estados finales: no hay acciones posibles */}
+                  {['completed', 'cancelled', 'no_show'].includes(ep.status_name) ? (
+                    <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                      Esta cita está en un estado final.
+                    </Typography>
+                  ) : (
+                    <>
+                      {/* Encabezado con spinner mientras se procesa */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                        <Typography
+                          variant="caption"
+                          sx={{ color: '#2563EB', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}
+                        >
+                          Cambiar estado
+                        </Typography>
+                        {statusChanging && <CircularProgress size={13} thickness={5} />}
+                      </Box>
+
+                      {/* Error al cambiar estado */}
+                      {statusError && (
+                        <Alert severity="error" sx={{ mb: 1, borderRadius: 2 }}>
+                          {statusError}
+                        </Alert>
+                      )}
+
+                      {/* Botones de transición según el estado actual */}
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+
+                        {/* scheduled → confirmed */}
+                        {ep.status_name === 'scheduled' && (
+                          <Button
+                            size="small" variant="outlined" disabled={statusChanging}
+                            onClick={() => handleStatusChange('confirmed')}
+                            sx={{ borderColor: '#16a34a', color: '#16a34a', borderRadius: '8px',
+                              '&:hover': { backgroundColor: '#16a34a14', borderColor: '#16a34a' } }}
+                          >
+                            Confirmar
+                          </Button>
+                        )}
+
+                        {/* confirmed → in_progress */}
+                        {ep.status_name === 'confirmed' && (
+                          <Button
+                            size="small" variant="outlined" disabled={statusChanging}
+                            onClick={() => handleStatusChange('in_progress')}
+                            sx={{ borderColor: '#0284c7', color: '#0284c7', borderRadius: '8px',
+                              '&:hover': { backgroundColor: '#0284c714', borderColor: '#0284c7' } }}
+                          >
+                            Iniciar consulta
+                          </Button>
+                        )}
+
+                        {/* in_progress → completed */}
+                        {ep.status_name === 'in_progress' && (
+                          <Button
+                            size="small" variant="outlined" disabled={statusChanging}
+                            onClick={() => handleStatusChange('completed')}
+                            sx={{ borderColor: '#16a34a', color: '#16a34a', borderRadius: '8px',
+                              '&:hover': { backgroundColor: '#16a34a14', borderColor: '#16a34a' } }}
+                          >
+                            Completar
+                          </Button>
+                        )}
+
+                        {/* scheduled / confirmed → no_show */}
+                        {['scheduled', 'confirmed'].includes(ep.status_name) && (
+                          <Button
+                            size="small" variant="outlined" disabled={statusChanging}
+                            onClick={() => handleStatusChange('no_show')}
+                            sx={{ borderColor: '#d97706', color: '#d97706', borderRadius: '8px',
+                              '&:hover': { backgroundColor: '#d9770614', borderColor: '#d97706' } }}
+                          >
+                            No asistió
+                          </Button>
+                        )}
+
+                        {/* scheduled / confirmed → cancelled (requiere motivo opcional) */}
+                        {['scheduled', 'confirmed'].includes(ep.status_name) && (
+                          <Button
+                            size="small" variant="outlined" disabled={statusChanging}
+                            onClick={() => setShowCancelForm((p) => !p)}
+                            sx={{ borderColor: '#dc2626', color: '#dc2626', borderRadius: '8px',
+                              '&:hover': { backgroundColor: '#dc262614', borderColor: '#dc2626' } }}
+                          >
+                            Cancelar cita
+                          </Button>
+                        )}
+                      </Box>
+
+                      {/* Formulario de motivo de cancelación */}
+                      {showCancelForm && (
+                        <Stack spacing={1} sx={{ mt: 1.5 }}>
+                          <TextField
+                            label="Motivo de cancelación (opcional)"
+                            size="small"
+                            fullWidth
+                            multiline
+                            rows={2}
+                            value={cancelReason}
+                            onChange={(e) => setCancelReason(e.target.value)}
+                            disabled={statusChanging}
+                          />
+                          <Button
+                            size="small"
+                            variant="contained"
+                            disabled={statusChanging}
+                            onClick={() => handleStatusChange('cancelled', cancelReason || undefined)}
+                            sx={{
+                              alignSelf: 'flex-start',
+                              backgroundColor: '#dc2626',
+                              '&:hover': { backgroundColor: '#b91c1c' },
+                              borderRadius: '8px',
+                            }}
+                          >
+                            {statusChanging ? 'Procesando…' : 'Confirmar cancelación'}
+                          </Button>
+                        </Stack>
+                      )}
+                    </>
+                  )}
+                </Box>
+
               </Stack>
             </DialogContent>
 
-            <DialogActions sx={{ px: 3, pb: 2.5 }}>
+            <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+              {/* Botón "Reprogramar" — visible solo para citas canceladas o no asistidas */}
+              {['cancelled', 'no_show'].includes(ep.status_name) && (
+                <Button
+                  onClick={handleReschedule}
+                  variant="outlined"
+                  sx={{
+                    borderRadius: '8px',
+                    borderColor: '#2563EB',
+                    color: '#2563EB',
+                    mr: 'auto',
+                    '&:hover': { backgroundColor: '#2563EB14', borderColor: '#2563EB' },
+                  }}
+                >
+                  Reprogramar
+                </Button>
+              )}
               <Button
-                onClick={() => setDetailOpen(false)}
+                onClick={handleDetailClose}
+                disabled={statusChanging}
                 variant="contained"
                 sx={{ borderRadius: '8px', backgroundColor: '#2563EB', '&:hover': { backgroundColor: '#1d4ed8' } }}
               >
