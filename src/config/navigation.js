@@ -6,7 +6,7 @@
 // ============================================================
 import {
   CalendarMonth, People, MedicalServices, Receipt,
-  Notifications, BarChart, Dashboard,
+  Notifications, BarChart, Dashboard, AdminPanelSettings,
 } from '@mui/icons-material';
 
 export const navItems = [
@@ -16,5 +16,6 @@ export const navItems = [
   { label: 'Historias',      path: '/historias',     icon: MedicalServices,  roles: ['admin', 'dentist'] },
   { label: 'Facturación',    path: '/facturacion',   icon: Receipt,          roles: ['admin', 'receptionist'] },
   { label: 'Notificaciones', path: '/notificaciones', icon: Notifications,   roles: ['admin', 'receptionist'] },
-  { label: 'Reportes',       path: '/reportes',      icon: BarChart,         roles: ['admin'] },
+  { label: 'Reportes',       path: '/reportes',      icon: BarChart,         roles: ['admin', 'dentist'] },
+  { label: 'Usuarios', path: '/usuarios', icon: AdminPanelSettings, roles: ['admin'] },
 ];
