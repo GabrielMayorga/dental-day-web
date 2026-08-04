@@ -27,3 +27,9 @@ export const updateRecord = async (id, data) => {
   const response = await api.patch(`/records/${id}`, data);
   return response.data.data;
 };
+
+// Historias clínicas más recientes de toda la clínica
+export const getRecentRecords = async () => {
+  const response = await api.get('/records/recent');
+  return response.data.data;
+};
