@@ -10,9 +10,12 @@ import {
   Box, Typography, Button, TextField, InputAdornment,
   Table, TableHead, TableBody, TableRow, TableCell, TableContainer,
   CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions,
-  MenuItem, Alert, Paper, IconButton, Tooltip,
+  MenuItem, Alert, Paper, IconButton, Tooltip, useTheme, useMediaQuery,
 } from '@mui/material';
-import { Search, PersonAdd, Edit, Delete, Visibility } from '@mui/icons-material';
+import {
+  Search, PersonAdd, Edit, Delete, Visibility,
+  Phone, Email, LocationOn, Bloodtype,
+} from '@mui/icons-material';
 import { getPatients, createPatient, updatePatient, deletePatient } from '../api/patients';
 
 // ── Opciones de los selects ──────────────────────────────────
@@ -60,6 +63,11 @@ const PatientsPage = () => {
   const glassBg = isDark ? 'rgba(22,27,34,0.70)' : 'rgba(255,255,255,0.70)';
   const glassBorder = isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(255,255,255,0.6)';
   const dialogBg = isDark ? 'rgba(22,27,34,0.92)' : 'rgba(255,255,255,0.92)';
+
+  // Detección de móvil (menor al breakpoint 'md') para alternar
+  // entre la tabla de escritorio y la lista de tarjetas
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   // ── Estado de la lista ───────────────────────────────────────
   const [patients, setPatients]       = useState([]);
@@ -202,13 +210,22 @@ const PatientsPage = () => {
   // ── Render ───────────────────────────────────────────────────
   return (
     <Box>
-      {/* Cabecera de sección */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+      {/* Cabecera de sección: se apila en móvil */}
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', md: 'row' },
+          alignItems: { xs: 'stretch', md: 'center' },
+          justifyContent: 'space-between',
+          gap: { xs: 1.5, md: 0 },
+          mb: { xs: 2, md: 3 },
+        }}
+      >
         <Box>
-          <Typography variant="h5" sx={{ color: 'text.primary', fontWeight: 600 }}>
+          <Typography variant="h5" sx={{ color: 'text.primary', fontWeight: 600, fontSize: { xs: '1.15rem', md: '1.5rem' } }}>
             Pacientes
           </Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.3 }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.3, fontSize: { xs: 13, md: 14 } }}>
             Registro y consulta de pacientes de la clínica
           </Typography>
         </Box>
@@ -217,19 +234,19 @@ const PatientsPage = () => {
           variant="contained"
           startIcon={<PersonAdd />}
           onClick={handleOpenCreate}
-          sx={{ borderRadius: '12px', px: 2.5 }}
+          sx={{ borderRadius: '12px', px: 2.5, width: { xs: '100%', md: 'auto' } }}
         >
           Nuevo paciente
         </Button>
       </Box>
 
-      {/* Buscador */}
+      {/* Buscador: ancho completo en móvil */}
       <TextField
         placeholder="Buscar por nombre…"
         value={searchText}
         onChange={(e) => setSearchText(e.target.value)}
         size="small"
-        sx={{ mb: 2.5, width: 320 }}
+        sx={{ mb: { xs: 2, md: 2.5 }, width: { xs: '100%', md: 320 } }}
         InputProps={{
           startAdornment: (
             <InputAdornment position="start">
@@ -240,103 +257,209 @@ const PatientsPage = () => {
         }}
       />
 
-      {/* Tabla envuelta en glass sutil */}
-      <Paper
-        elevation={0}
-        sx={{
-          borderRadius: '16px',
-          border: glassBorder,
-          background: glassBg,
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          overflow: 'hidden',
-        }}
-      >
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow sx={{ background: 'rgba(10,31,68,0.04)' }}>
-                <TableCell sx={HEADER_CELL_SX}>Nombre completo</TableCell>
-                <TableCell sx={HEADER_CELL_SX}>Teléfono</TableCell>
-                <TableCell sx={HEADER_CELL_SX}>Ciudad</TableCell>
-                <TableCell sx={HEADER_CELL_SX}>Tipo de sangre</TableCell>
-                <TableCell sx={{ ...HEADER_CELL_SX, width: 128, textAlign: 'center' }}>
-                  Acciones
-                </TableCell>
-              </TableRow>
-            </TableHead>
+      {isMobile ? (
+        // ── Lista de tarjetas (móvil): reemplaza la tabla ──────
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+          {/* Estado: cargando */}
+          {loadingList && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+              <CircularProgress size={32} sx={{ color: 'secondary.main' }} />
+            </Box>
+          )}
 
-            <TableBody>
-              {/* Estado: cargando */}
-              {loadingList && (
-                <TableRow>
-                  <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
-                    <CircularProgress size={32} sx={{ color: 'secondary.main' }} />
+          {/* Estado: sin resultados */}
+          {!loadingList && patients.length === 0 && (
+            <Box sx={{ textAlign: 'center', py: 6, color: 'text.secondary', fontSize: 14 }}>
+              {searchText
+                ? `Sin resultados para "${searchText}"`
+                : 'No hay pacientes registrados aún'}
+            </Box>
+          )}
+
+          {/* Tarjeta por paciente */}
+          {!loadingList && patients.map((p) => {
+            const id = p.id ?? p._id;
+            return (
+              <Paper
+                key={id}
+                elevation={0}
+                onClick={() => navigate(`/pacientes/${id}`)}
+                sx={{
+                  borderRadius: '14px',
+                  border: glassBorder,
+                  background: glassBg,
+                  backdropFilter: 'blur(16px)',
+                  WebkitBackdropFilter: 'blur(16px)',
+                  p: 1.75,
+                  cursor: 'pointer',
+                }}
+              >
+                {/* Nombre completo destacado */}
+                <Typography sx={{ color: 'text.primary', fontWeight: 600, fontSize: 15 }}>
+                  {p.first_name} {p.last_name}
+                </Typography>
+
+                {/* Datos secundarios con íconos pequeños */}
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 0.75 }}>
+                  {p.phone && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, color: 'text.secondary', fontSize: 12.5 }}>
+                      <Phone sx={{ fontSize: 15 }} />
+                      {p.phone}
+                    </Box>
+                  )}
+                  {p.email && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, color: 'text.secondary', fontSize: 12.5 }}>
+                      <Email sx={{ fontSize: 15 }} />
+                      {p.email}
+                    </Box>
+                  )}
+                  {p.city && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, color: 'text.secondary', fontSize: 12.5 }}>
+                      <LocationOn sx={{ fontSize: 15 }} />
+                      {p.city}
+                    </Box>
+                  )}
+                  {p.blood_type && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, color: 'text.secondary', fontSize: 12.5 }}>
+                      <Bloodtype sx={{ fontSize: 15 }} />
+                      {p.blood_type}
+                    </Box>
+                  )}
+                </Box>
+
+                {/* Acciones: ver detalle, editar y desactivar */}
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5, mt: 1 }}>
+                  <Tooltip title="Ver detalle">
+                    <IconButton
+                      size="small"
+                      onClick={(e) => { e.stopPropagation(); navigate(`/pacientes/${id}`); }}
+                      sx={{ color: '#1D9E75' }}
+                    >
+                      <Visibility fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Editar">
+                    <IconButton
+                      size="small"
+                      onClick={(e) => { e.stopPropagation(); handleOpenEdit(p); }}
+                      sx={{ color: 'secondary.main' }}
+                    >
+                      <Edit fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Desactivar">
+                    <IconButton
+                      size="small"
+                      onClick={(e) => { e.stopPropagation(); handleOpenConfirm(p); }}
+                      sx={{ color: '#D32F2F', opacity: 0.7, '&:hover': { opacity: 1 } }}
+                    >
+                      <Delete fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+              </Paper>
+            );
+          })}
+        </Box>
+      ) : (
+        // ── Tabla (escritorio): sin cambios respecto al diseño original ──
+        <Paper
+          elevation={0}
+          sx={{
+            borderRadius: '16px',
+            border: glassBorder,
+            background: glassBg,
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            overflow: 'hidden',
+          }}
+        >
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow sx={{ background: 'rgba(10,31,68,0.04)' }}>
+                  <TableCell sx={HEADER_CELL_SX}>Nombre completo</TableCell>
+                  <TableCell sx={HEADER_CELL_SX}>Teléfono</TableCell>
+                  <TableCell sx={HEADER_CELL_SX}>Ciudad</TableCell>
+                  <TableCell sx={HEADER_CELL_SX}>Tipo de sangre</TableCell>
+                  <TableCell sx={{ ...HEADER_CELL_SX, width: 128, textAlign: 'center' }}>
+                    Acciones
                   </TableCell>
                 </TableRow>
-              )}
+              </TableHead>
 
-              {/* Estado: sin resultados */}
-              {!loadingList && patients.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} align="center" sx={{ py: 6, color: 'text.secondary', fontSize: 14 }}>
-                    {searchText
-                      ? `Sin resultados para "${searchText}"`
-                      : 'No hay pacientes registrados aún'}
-                  </TableCell>
-                </TableRow>
-              )}
+              <TableBody>
+                {/* Estado: cargando */}
+                {loadingList && (
+                  <TableRow>
+                    <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
+                      <CircularProgress size={32} sx={{ color: 'secondary.main' }} />
+                    </TableCell>
+                  </TableRow>
+                )}
 
-              {/* Filas de pacientes */}
-              {!loadingList && patients.map((p) => (
-                <TableRow
-                  key={p.id ?? p._id}
-                  hover
-                  sx={{ '&:last-child td': { border: 0 }, cursor: 'default' }}
-                >
-                  <TableCell sx={{ color: 'text.primary', fontWeight: 500 }}>
-                    {p.first_name} {p.last_name}
-                  </TableCell>
-                  <TableCell sx={{ color: 'text.secondary' }}>{p.phone || '—'}</TableCell>
-                  <TableCell sx={{ color: 'text.secondary' }}>{p.city  || '—'}</TableCell>
-                  <TableCell sx={{ color: 'text.secondary' }}>{p.blood_type || '—'}</TableCell>
+                {/* Estado: sin resultados */}
+                {!loadingList && patients.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} align="center" sx={{ py: 6, color: 'text.secondary', fontSize: 14 }}>
+                      {searchText
+                        ? `Sin resultados para "${searchText}"`
+                        : 'No hay pacientes registrados aún'}
+                    </TableCell>
+                  </TableRow>
+                )}
 
-                  {/* Acciones: ver detalle, editar y desactivar */}
-                  <TableCell align="center" sx={{ py: 0.5 }}>
-                    <Tooltip title="Ver detalle">
-                      <IconButton
-                        size="small"
-                        onClick={() => navigate(`/pacientes/${p.id ?? p._id}`)}
-                        sx={{ color: '#1D9E75' }}
-                      >
-                        <Visibility fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Editar">
-                      <IconButton
-                        size="small"
-                        onClick={() => handleOpenEdit(p)}
-                        sx={{ color: 'secondary.main' }}
-                      >
-                        <Edit fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Desactivar">
-                      <IconButton
-                        size="small"
-                        onClick={() => handleOpenConfirm(p)}
-                        sx={{ color: '#D32F2F', opacity: 0.7, '&:hover': { opacity: 1 } }}
-                      >
-                        <Delete fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
+                {/* Filas de pacientes */}
+                {!loadingList && patients.map((p) => (
+                  <TableRow
+                    key={p.id ?? p._id}
+                    hover
+                    sx={{ '&:last-child td': { border: 0 }, cursor: 'default' }}
+                  >
+                    <TableCell sx={{ color: 'text.primary', fontWeight: 500 }}>
+                      {p.first_name} {p.last_name}
+                    </TableCell>
+                    <TableCell sx={{ color: 'text.secondary' }}>{p.phone || '—'}</TableCell>
+                    <TableCell sx={{ color: 'text.secondary' }}>{p.city  || '—'}</TableCell>
+                    <TableCell sx={{ color: 'text.secondary' }}>{p.blood_type || '—'}</TableCell>
+
+                    {/* Acciones: ver detalle, editar y desactivar */}
+                    <TableCell align="center" sx={{ py: 0.5 }}>
+                      <Tooltip title="Ver detalle">
+                        <IconButton
+                          size="small"
+                          onClick={() => navigate(`/pacientes/${p.id ?? p._id}`)}
+                          sx={{ color: '#1D9E75' }}
+                        >
+                          <Visibility fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Editar">
+                        <IconButton
+                          size="small"
+                          onClick={() => handleOpenEdit(p)}
+                          sx={{ color: 'secondary.main' }}
+                        >
+                          <Edit fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Desactivar">
+                        <IconButton
+                          size="small"
+                          onClick={() => handleOpenConfirm(p)}
+                          sx={{ color: '#D32F2F', opacity: 0.7, '&:hover': { opacity: 1 } }}
+                        >
+                          <Delete fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
+      )}
 
       {/* ── Diálogo: crear / editar paciente ───────────────── */}
       <Dialog
@@ -344,9 +467,10 @@ const PatientsPage = () => {
         onClose={handleCloseDialog}
         fullWidth
         maxWidth="sm"
+        fullScreen={isMobile}
         PaperProps={{
           sx: {
-            borderRadius: '20px',
+            borderRadius: { xs: 0, md: '20px' },
             background: dialogBg,
             backdropFilter: 'blur(24px)',
             WebkitBackdropFilter: 'blur(24px)',
@@ -355,11 +479,11 @@ const PatientsPage = () => {
         }}
       >
         {/* Título dinámico según el modo */}
-        <DialogTitle sx={{ fontWeight: 600, color: 'text.primary', pb: 1 }}>
+        <DialogTitle sx={{ fontWeight: 600, color: 'text.primary', pb: 1, fontSize: { xs: 17, md: 20 } }}>
           {editingId ? 'Editar paciente' : 'Nuevo paciente'}
         </DialogTitle>
 
-        <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
+        <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2, px: { xs: 2, md: 3 } }}>
           {/* Error del backend */}
           {formError && (
             <Alert severity="error" sx={{ borderRadius: '12px' }}>
@@ -367,8 +491,8 @@ const PatientsPage = () => {
             </Alert>
           )}
 
-          {/* Nombre y apellido en la misma fila */}
-          <Box sx={{ display: 'flex', gap: 2 }}>
+          {/* Nombre y apellido: lado a lado en escritorio, apilados en móvil */}
+          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
             <TextField
               label="Nombre *"
               name="first_name"
@@ -389,8 +513,8 @@ const PatientsPage = () => {
             />
           </Box>
 
-          {/* Fecha de nacimiento y género */}
-          <Box sx={{ display: 'flex', gap: 2 }}>
+          {/* Fecha de nacimiento y género: lado a lado en escritorio, apilados en móvil */}
+          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
             <TextField
               label="Fecha de nacimiento"
               name="birth_date"
@@ -416,8 +540,8 @@ const PatientsPage = () => {
             </TextField>
           </Box>
 
-          {/* Teléfono y ciudad */}
-          <Box sx={{ display: 'flex', gap: 2 }}>
+          {/* Teléfono y ciudad: lado a lado en escritorio, apilados en móvil */}
+          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
             <TextField
               label="Teléfono"
               name="phone"
@@ -444,7 +568,7 @@ const PatientsPage = () => {
             value={form.blood_type}
             onChange={handleFieldChange}
             size="small"
-            sx={{ width: '50%' }}
+            sx={{ width: { xs: '100%', sm: '50%' } }}
           >
             {BLOOD_TYPES.map((bt) => (
               <MenuItem key={bt} value={bt}>{bt}</MenuItem>
@@ -465,7 +589,7 @@ const PatientsPage = () => {
           />
         </DialogContent>
 
-        <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
+        <DialogActions sx={{ px: { xs: 2, md: 3 }, py: 2, gap: 1 }}>
           <Button
             onClick={handleCloseDialog}
             disabled={saving}
