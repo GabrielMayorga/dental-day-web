@@ -210,3 +210,60 @@
   font-weight: 600;
   font-size:   0.75rem;
 }
+
+/* ── Responsive: pantallas menores al breakpoint 'md' (900px) ────
+   Compacta la toolbar (permite que pase a dos líneas si no cabe)
+   y reduce tamaños de fuente/paddings para que el calendario se
+   lea bien en móvil. No afecta el diseño de escritorio. ──────── */
+@media (max-width: 899.98px) {
+  /* La barra de herramientas se centra y se envuelve en varias líneas
+     en vez de desbordar horizontalmente */
+  .fc .fc-toolbar {
+    flex-wrap: wrap;
+    justify-content: center;
+    row-gap: 8px;
+    column-gap: 6px;
+  }
+  .fc .fc-toolbar-chunk {
+    display: flex;
+    justify-content: center;
+  }
+  .fc .fc-toolbar-title {
+    font-size: 0.95rem !important;
+  }
+
+  /* Botones más compactos, cómodos de tocar pero sin desbordar */
+  .fc .fc-button-primary {
+    font-size: 0.72rem !important;
+    padding:   4px 9px !important;
+  }
+
+  /* Cabecera de días: etiquetas más chicas */
+  .fc .fc-col-header-cell-cushion {
+    font-size: 0.72rem;
+  }
+
+  /* Slots de hora: un poco más bajos y con etiquetas más chicas */
+  .fc .fc-timegrid-slot {
+    height: 38px !important;
+  }
+  .fc .fc-timegrid-slot-label-cushion {
+    font-size: 0.66rem !important;
+    padding-right: 6px;
+  }
+
+  /* Eventos: texto y padding reducidos para que quepan en columnas angostas */
+  .fc .fc-event {
+    font-size: 0.7rem !important;
+    padding:   2px 5px !important;
+  }
+  .fc .fc-event-time {
+    font-size: 0.62rem !important;
+  }
+
+  /* Vista mensual: números de día más compactos */
+  .fc .fc-daygrid-day-number {
+    font-size: 0.72rem;
+    padding:   4px 6px;
+  }
+}

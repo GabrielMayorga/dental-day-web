@@ -10,7 +10,7 @@ import {
   InputLabel, Select, MenuItem, CircularProgress,
   Dialog, DialogTitle, DialogContent, DialogActions,
   Button, TextField, Alert, Stack, Autocomplete,
-  Chip, Divider,
+  Chip, Divider, useTheme, useMediaQuery,
 } from '@mui/material';
 import FullCalendar from '@fullcalendar/react';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -88,6 +88,13 @@ const calendarLocaleES = {
   moreLinkText: 'más',
 };
 
+// Variante móvil: etiqueta de "Semana" acortada para que la barra
+// de botones quepa en pantallas angostas
+const calendarLocaleESMobile = {
+  ...calendarLocaleES,
+  buttonText: { ...calendarLocaleES.buttonText, week: 'Sem' },
+};
+
 
 // Valores iniciales del formulario de nueva cita
 const FORM_EMPTY = {
@@ -102,6 +109,11 @@ const FORM_EMPTY = {
 export default function AgendaPage() {
   const { mode } = useColorMode();
   const isDark = mode === 'dark';
+
+  // Detección de móvil (menor al breakpoint 'md') para alternar
+  // vista inicial del calendario, toolbar, diálogos fullScreen, etc.
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   // ── Estilos glass — dependen del modo ────────────────────────
   const glassPaperSx = {
@@ -118,8 +130,9 @@ export default function AgendaPage() {
     backdropFilter: 'blur(20px)',
     WebkitBackdropFilter: 'blur(20px)',
     border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(10,31,68,0.10)',
-    borderRadius: '16px',
-    minWidth: { xs: '90vw', sm: '480px' },
+    // En pantalla completa (móvil) no queremos esquinas redondeadas
+    borderRadius: { xs: 0, md: '16px' },
+    minWidth: { xs: '100%', sm: '480px' },
   };
 
   // ── Estado del calendario ──────────────────────────────────
@@ -366,12 +379,15 @@ export default function AgendaPage() {
   return (
     <Box sx={{ p: { xs: 2, md: 3 } }} data-fc-mode={mode}>
       {/* Encabezado */}
-      <Typography variant="h5" sx={{ color: 'text.primary', mb: 3 }}>
+      <Typography
+        variant="h5"
+        sx={{ color: 'text.primary', mb: { xs: 2, md: 3 }, fontSize: { xs: '1.15rem', md: '1.5rem' } }}
+      >
         Agenda
       </Typography>
 
-      {/* Filtro de odontólogo */}
-      <FormControl size="small" sx={{ mb: 3, minWidth: 240 }}>
+      {/* Filtro de odontólogo: ancho completo en móvil */}
+      <FormControl size="small" sx={{ mb: 3, minWidth: 240, width: { xs: '100%', md: 'auto' } }}>
         <InputLabel>Odontólogo</InputLabel>
         <Select
           label="Odontólogo"
@@ -395,15 +411,18 @@ export default function AgendaPage() {
           </Box>
         ) : (
           <FullCalendar
+            // La key fuerza un remontaje al cruzar el breakpoint móvil/escritorio
+            // (por ejemplo al rotar o redimensionar), para que initialView tome efecto
+            key={isMobile ? 'cal-mobile' : 'cal-desktop'}
             ref={calendarRef}
             plugins={[timeGridPlugin, dayGridPlugin, interactionPlugin]}
-            initialView="timeGridWeek"
+            initialView={isMobile ? 'timeGridDay' : 'timeGridWeek'}
             headerToolbar={{
               left: 'prev,next today',
               center: 'title',
               right: 'timeGridWeek,timeGridDay,dayGridMonth',
             }}
-            {...calendarLocaleES}
+            {...(isMobile ? calendarLocaleESMobile : calendarLocaleES)}
             nowIndicator={true}
             allDaySlot={false}
             slotMinTime="08:00:00"
@@ -435,13 +454,14 @@ export default function AgendaPage() {
           <Dialog
             open={detailOpen}
             onClose={handleDetailClose}
+            fullScreen={isMobile}
             PaperProps={{ sx: dialogPaperSx }}
           >
-            <DialogTitle sx={{ color: 'text.primary', fontWeight: 700, pb: 0.5 }}>
+            <DialogTitle sx={{ color: 'text.primary', fontWeight: 700, pb: 0.5, fontSize: { xs: 17, md: 20 } }}>
               {ep.patient_name || selectedEvent.title}
             </DialogTitle>
 
-            <DialogContent>
+            <DialogContent sx={{ px: { xs: 2, md: 3 } }}>
               <Stack spacing={1.5} sx={{ mt: 1 }}>
 
                 {/* Fecha y hora */}
@@ -563,8 +583,9 @@ export default function AgendaPage() {
                         </Alert>
                       )}
 
-                      {/* Botones de transición según el estado actual */}
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                      {/* Botones de transición según el estado actual.
+                          En móvil se apilan a ancho completo para ser cómodos de tocar. */}
+                      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, flexWrap: 'wrap', gap: 1 }}>
 
                         {/* scheduled → confirmed */}
                         {ep.status_name === 'scheduled' && (
@@ -572,6 +593,7 @@ export default function AgendaPage() {
                             size="small" variant="outlined" disabled={statusChanging}
                             onClick={() => handleStatusChange('confirmed')}
                             sx={{ borderColor: '#16a34a', color: '#16a34a', borderRadius: '8px',
+                              width: { xs: '100%', sm: 'auto' },
                               '&:hover': { backgroundColor: '#16a34a14', borderColor: '#16a34a' } }}
                           >
                             Confirmar
@@ -584,6 +606,7 @@ export default function AgendaPage() {
                             size="small" variant="outlined" disabled={statusChanging}
                             onClick={() => handleStatusChange('in_progress')}
                             sx={{ borderColor: '#0284c7', color: '#0284c7', borderRadius: '8px',
+                              width: { xs: '100%', sm: 'auto' },
                               '&:hover': { backgroundColor: '#0284c714', borderColor: '#0284c7' } }}
                           >
                             Iniciar consulta
@@ -596,6 +619,7 @@ export default function AgendaPage() {
                             size="small" variant="outlined" disabled={statusChanging}
                             onClick={() => handleStatusChange('completed')}
                             sx={{ borderColor: '#16a34a', color: '#16a34a', borderRadius: '8px',
+                              width: { xs: '100%', sm: 'auto' },
                               '&:hover': { backgroundColor: '#16a34a14', borderColor: '#16a34a' } }}
                           >
                             Completar
@@ -608,6 +632,7 @@ export default function AgendaPage() {
                             size="small" variant="outlined" disabled={statusChanging}
                             onClick={() => handleStatusChange('no_show')}
                             sx={{ borderColor: '#d97706', color: '#d97706', borderRadius: '8px',
+                              width: { xs: '100%', sm: 'auto' },
                               '&:hover': { backgroundColor: '#d9770614', borderColor: '#d97706' } }}
                           >
                             No asistió
@@ -620,6 +645,7 @@ export default function AgendaPage() {
                             size="small" variant="outlined" disabled={statusChanging}
                             onClick={() => setShowCancelForm((p) => !p)}
                             sx={{ borderColor: '#dc2626', color: '#dc2626', borderRadius: '8px',
+                              width: { xs: '100%', sm: 'auto' },
                               '&:hover': { backgroundColor: '#dc262614', borderColor: '#dc2626' } }}
                           >
                             Cancelar cita
@@ -646,7 +672,7 @@ export default function AgendaPage() {
                             disabled={statusChanging}
                             onClick={() => handleStatusChange('cancelled', cancelReason || undefined)}
                             sx={{
-                              alignSelf: 'flex-start',
+                              alignSelf: { xs: 'stretch', sm: 'flex-start' },
                               backgroundColor: '#dc2626',
                               '&:hover': { backgroundColor: '#b91c1c' },
                               borderRadius: '8px',
@@ -663,7 +689,16 @@ export default function AgendaPage() {
               </Stack>
             </DialogContent>
 
-            <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+            {/* En móvil los botones se apilan a ancho completo con espaciado vertical */}
+            <DialogActions
+              sx={{
+                px: { xs: 2, md: 3 },
+                pb: { xs: 2, md: 2.5 },
+                gap: 1,
+                flexDirection: { xs: 'column', sm: 'row' },
+                alignItems: { xs: 'stretch', sm: 'center' },
+              }}
+            >
               {/* Botón "Reprogramar" — visible solo para citas canceladas o no asistidas */}
               {['cancelled', 'no_show'].includes(ep.status_name) && (
                 <Button
@@ -673,7 +708,8 @@ export default function AgendaPage() {
                     borderRadius: '8px',
                     borderColor: '#2563EB',
                     color: '#2563EB',
-                    mr: 'auto',
+                    mr: { sm: 'auto' },
+                    width: { xs: '100%', sm: 'auto' },
                     '&:hover': { backgroundColor: '#2563EB14', borderColor: '#2563EB' },
                   }}
                 >
@@ -684,7 +720,12 @@ export default function AgendaPage() {
                 onClick={handleDetailClose}
                 disabled={statusChanging}
                 variant="contained"
-                sx={{ borderRadius: '8px', backgroundColor: '#2563EB', '&:hover': { backgroundColor: '#1d4ed8' } }}
+                sx={{
+                  borderRadius: '8px',
+                  backgroundColor: '#2563EB',
+                  width: { xs: '100%', sm: 'auto' },
+                  '&:hover': { backgroundColor: '#1d4ed8' },
+                }}
               >
                 Cerrar
               </Button>
@@ -697,14 +738,16 @@ export default function AgendaPage() {
       <Dialog
         open={dialogOpen}
         onClose={handleClose}
+        fullScreen={isMobile}
         PaperProps={{ sx: dialogPaperSx }}
       >
-        <DialogTitle sx={{ color: 'text.primary', fontWeight: 600, pb: 1 }}>
+        <DialogTitle sx={{ color: 'text.primary', fontWeight: 600, pb: 1, fontSize: { xs: 17, md: 20 } }}>
           Nueva cita
         </DialogTitle>
 
-        <DialogContent>
-          <Stack spacing={2.5} sx={{ mt: 1 }}>
+        <DialogContent sx={{ px: { xs: 2, md: 3 } }}>
+          {/* Stack ya apila los campos verticalmente; solo ajustamos el espaciado en móvil */}
+          <Stack spacing={{ xs: 2, md: 2.5 }} sx={{ mt: 1 }}>
             {/* Mensaje de error del backend */}
             {formError && (
               <Alert severity="error" sx={{ borderRadius: 2 }}>
@@ -806,11 +849,19 @@ export default function AgendaPage() {
           </Stack>
         </DialogContent>
 
-        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+        {/* En móvil los botones se apilan a ancho completo con espaciado vertical */}
+        <DialogActions
+          sx={{
+            px: { xs: 2, md: 3 },
+            pb: { xs: 2, md: 2.5 },
+            gap: { xs: 1, md: 0 },
+            flexDirection: { xs: 'column', sm: 'row' },
+          }}
+        >
           <Button
             onClick={handleClose}
             disabled={saving}
-            sx={{ color: 'text.secondary' }}
+            sx={{ color: 'text.secondary', width: { xs: '100%', sm: 'auto' } }}
           >
             Cancelar
           </Button>
@@ -818,7 +869,7 @@ export default function AgendaPage() {
             onClick={handleSave}
             disabled={saving}
             variant="contained"
-            sx={{ borderRadius: '8px' }}
+            sx={{ borderRadius: '8px', width: { xs: '100%', sm: 'auto' } }}
           >
             {saving ? 'Guardando…' : 'Guardar cita'}
           </Button>
