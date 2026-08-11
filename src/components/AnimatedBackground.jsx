@@ -35,9 +35,14 @@ const AnimatedBackground = ({ children }) => {
 
   return (
     <Box sx={{
-      minHeight: '100vh', position: 'relative', overflow: 'hidden',
+      // 100dvh (altura dinámica del viewport) evita que la barra de
+      // direcciones del navegador móvil corte el contenido
+      minHeight: '100dvh', position: 'relative', overflow: 'hidden',
       background: bgGradient,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
+      // Aire vertical en móvil para que la tarjeta no quede pegada a
+      // los bordes cuando el contenido es más alto que la pantalla
+      py: { xs: 4, sm: 0 },
     }}>
       <Box sx={{
         position: 'absolute', width: 320, height: 320, borderRadius: '50%',

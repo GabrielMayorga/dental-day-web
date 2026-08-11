@@ -39,20 +39,30 @@ const LoginPage = () => {
     
     <AnimatedBackground>
       <ThemeToggle floating />
-      <GlassCard sx={{ width: 360, maxWidth: '90vw' }}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
+      {/* En móvil: ancho fluido con márgenes laterales cómodos (nunca pegada a los bordes).
+          En escritorio (sm+): mismo ancho fijo de siempre, sin cambios. */}
+      <GlassCard
+        sx={{
+          width: { xs: 'calc(100% - 48px)', sm: 360 },
+          maxWidth: { xs: 400, sm: '90vw' },
+        }}
+      >
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: { xs: 2, sm: 3 } }}>
           <Box sx={{
-            width: 56, height: 56, borderRadius: '16px', mb: 1.5,
+            width: { xs: 48, sm: 56 }, height: { xs: 48, sm: 56 }, borderRadius: '16px', mb: 1.5,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             background: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.55)',
             border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(255,255,255,0.7)',
           }}>
-            <LocalHospital sx={{ fontSize: 30, color: 'primary.dark' }} />
+            <LocalHospital sx={{ fontSize: { xs: 26, sm: 30 }, color: 'primary.dark' }} />
           </Box>
-          <Typography variant="h6" sx={{ color: 'text.primary', fontWeight: 600 }}>
+          <Typography
+            variant="h6"
+            sx={{ color: 'text.primary', fontWeight: 600, fontSize: { xs: '1.05rem', sm: '1.25rem' } }}
+          >
             Clínica Dental Day
           </Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: { xs: 13, sm: 14 } }}>
             Inicia sesión para continuar
           </Typography>
         </Box>

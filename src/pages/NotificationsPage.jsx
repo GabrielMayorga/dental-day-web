@@ -65,11 +65,14 @@ const NotificationsPage = () => {
   return (
     <Box>
       {/* Cabecera de sección */}
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" sx={{ color: 'text.primary', fontWeight: 600 }}>
+      <Box sx={{ mb: { xs: 2, sm: 3 } }}>
+        <Typography
+          variant="h5"
+          sx={{ color: 'text.primary', fontWeight: 600, fontSize: { xs: '1.15rem', sm: '1.5rem' } }}
+        >
           Notificaciones
         </Typography>
-        <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.3 }}>
+        <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.3, fontSize: { xs: 13, sm: 14 } }}>
           Recordatorios de citas próximas
         </Typography>
       </Box>
@@ -141,70 +144,104 @@ const NotificationsPage = () => {
                     overflow: 'hidden',
                   }}
                 >
-                  {groupItems.map((item, index) => (
-                    <Box key={item.id}>
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 2,
-                          px: 2.5,
-                          py: 2,
-                        }}
-                      >
-                        {/* Barra de color según el estado de la cita */}
+                  {groupItems.map((item, index) => {
+                    // Número de teléfono "limpio" (solo dígitos y +) para el enlace tel:
+                    const telHref = item.patient_phone
+                      ? `tel:${item.patient_phone.replace(/[^\d+]/g, '')}`
+                      : null;
+
+                    return (
+                      <Box key={item.id}>
                         <Box
                           sx={{
-                            width: 4,
-                            alignSelf: 'stretch',
-                            borderRadius: 4,
-                            background: item.status_color,
-                            flexShrink: 0,
+                            display: 'flex',
+                            // En móvil el contenido se apila para que nada se aplaste
+                            flexDirection: { xs: 'column', sm: 'row' },
+                            alignItems: { xs: 'stretch', sm: 'center' },
+                            gap: { xs: 1, sm: 2 },
+                            px: { xs: 1.75, sm: 2.5 },
+                            py: { xs: 1.5, sm: 2 },
                           }}
-                        />
+                        >
+                          {/* Barra de color según el estado de la cita:
+                              franja horizontal arriba en móvil, barra vertical en escritorio */}
+                          <Box
+                            sx={{
+                              width: { xs: '100%', sm: 4 },
+                              height: { xs: 4, sm: 'auto' },
+                              alignSelf: 'stretch',
+                              borderRadius: 4,
+                              background: item.status_color,
+                              flexShrink: 0,
+                            }}
+                          />
 
-                        {/* Hora y duración */}
-                        <Box sx={{ minWidth: 88, flexShrink: 0 }}>
-                          <Typography variant="body1" sx={{ color: 'text.primary', fontWeight: 600 }}>
-                            {formatHour(item.scheduled_at)}
-                          </Typography>
-                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                            {item.duration_minutes} min
-                          </Typography>
-                        </Box>
-
-                        {/* Paciente, teléfono y odontólogo */}
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Typography variant="body1" sx={{ color: 'text.primary', fontWeight: 600 }}>
-                            {item.patient_name}
-                          </Typography>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.3 }}>
-                            <Phone sx={{ fontSize: 15, color: 'text.secondary' }} />
+                          {/* Hora y duración */}
+                          <Box sx={{ minWidth: { sm: 88 }, flexShrink: 0 }}>
+                            <Typography
+                              variant="body1"
+                              sx={{ color: 'text.primary', fontWeight: 600, fontSize: { xs: 14, sm: 16 } }}
+                            >
+                              {formatHour(item.scheduled_at)}
+                            </Typography>
                             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                              {item.patient_phone || 'Sin teléfono'}
+                              {item.duration_minutes} min
                             </Typography>
                           </Box>
-                          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.2 }}>
-                            {item.staff_name}
-                          </Typography>
+
+                          {/* Paciente, teléfono y odontólogo */}
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Typography
+                              variant="body1"
+                              sx={{ color: 'text.primary', fontWeight: 600, fontSize: { xs: 14, sm: 16 } }}
+                            >
+                              {item.patient_name}
+                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.3 }}>
+                              <Phone sx={{ fontSize: 15, color: 'text.secondary', flexShrink: 0 }} />
+                              {telHref ? (
+                                // Enlace "tel:" para poder llamar con un toque desde el celular
+                                <Typography
+                                  component="a"
+                                  href={telHref}
+                                  variant="caption"
+                                  sx={{
+                                    color: 'text.secondary',
+                                    textDecoration: 'none',
+                                    '&:hover': { textDecoration: 'underline', color: 'secondary.main' },
+                                  }}
+                                >
+                                  {item.patient_phone}
+                                </Typography>
+                              ) : (
+                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                  Sin teléfono
+                                </Typography>
+                              )}
+                            </Box>
+                            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.2 }}>
+                              {item.staff_name}
+                            </Typography>
+                          </Box>
+
+                          {/* Estado traducido */}
+                          <Chip
+                            label={translateStatus(item.status_name)}
+                            size="small"
+                            sx={{
+                              alignSelf: { xs: 'flex-start', sm: 'center' },
+                              fontWeight: 600,
+                              color: item.status_color,
+                              background: `${item.status_color}1A`, // 10% de opacidad
+                              borderRadius: '8px',
+                            }}
+                          />
                         </Box>
 
-                        {/* Estado traducido */}
-                        <Chip
-                          label={translateStatus(item.status_name)}
-                          size="small"
-                          sx={{
-                            fontWeight: 600,
-                            color: item.status_color,
-                            background: `${item.status_color}1A`, // 10% de opacidad
-                            borderRadius: '8px',
-                          }}
-                        />
+                        {index < groupItems.length - 1 && <Divider sx={{ borderColor: 'divider' }} />}
                       </Box>
-
-                      {index < groupItems.length - 1 && <Divider sx={{ borderColor: 'divider' }} />}
-                    </Box>
-                  ))}
+                    );
+                  })}
                 </Paper>
               </Box>
             );
