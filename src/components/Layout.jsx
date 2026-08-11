@@ -8,15 +8,16 @@ import { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   Box, Drawer, AppBar, Toolbar, Typography, IconButton, Avatar,
-  Menu, MenuItem, Tooltip,
+  Menu, MenuItem, Tooltip, useMediaQuery, useTheme,
 } from '@mui/material';
-import { Logout, LocalHospital } from '@mui/icons-material';
+import { Logout, LocalHospital, Menu as MenuIcon } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { useColorMode } from '../context/ThemeContext';
 import { navItems } from '../config/navigation';
 import ThemeToggle from './ThemeToggle';
 
 const DRAWER_WIDTH = 92;
+const DRAWER_WIDTH_MOBILE = 112; // Un poco más ancho en móvil para que las etiquetas se lean bien
 
 const Layout = () => {
   const { user, logout } = useAuth();
@@ -26,6 +27,11 @@ const Layout = () => {
   const location = useLocation();
   const [anchorEl, setAnchorEl] = useState(null);
 
+  // Detecta pantallas pequeñas (menor a 'md') para alternar entre drawer permanente y temporal
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [mobileOpen, setMobileOpen] = useState(false);
+
   const visibleItems = navItems.filter((item) => item.roles.includes(user?.role));
 
   // Colores de superficie según el modo
@@ -33,66 +39,84 @@ const Layout = () => {
   const headerBg  = isDark ? 'rgba(22,27,34,0.75)' : 'rgba(255,255,255,0.75)';
   const borderCol = isDark ? '#30363D'             : 'rgba(0,0,0,0.06)';
 
+  const drawerWidth = isMobile ? DRAWER_WIDTH_MOBILE : DRAWER_WIDTH;
+
+  // En móvil, navegar cierra el drawer automáticamente
+  const handleNavigate = (path) => {
+    navigate(path);
+    if (isMobile) setMobileOpen(false);
+  };
+
+  // Contenido del drawer, compartido entre la versión permanente (escritorio) y la temporal (móvil)
+  const drawerContent = (
+    <>
+      {/* Logo compacto */}
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 2.5 }}>
+        <Box sx={{
+          width: 44, height: 44, borderRadius: '14px',
+          background: 'linear-gradient(135deg, #2563EB, #0A1F44)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <LocalHospital sx={{ color: '#fff', fontSize: 24 }} />
+        </Box>
+      </Box>
+
+      {/* Módulos: ícono arriba + etiqueta debajo */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, px: 1 }}>
+        {visibleItems.map((item) => {
+          const Icon = item.icon;
+          const active = location.pathname === item.path;
+          return (
+            <Box
+              key={item.path}
+              onClick={() => handleNavigate(item.path)}
+              sx={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center',
+                gap: 0.3, py: 1.2, borderRadius: '14px', cursor: 'pointer',
+                background: active
+                  ? (isDark ? 'rgba(37,99,235,0.20)' : 'rgba(37,99,235,0.12)')
+                  : 'transparent',
+                color: active ? '#2563EB' : (isDark ? '#9DA7B3' : '#5A6B85'),
+                transition: 'all 0.15s',
+                '&:hover': {
+                  background: isDark ? 'rgba(37,99,235,0.14)' : 'rgba(37,99,235,0.08)',
+                },
+              }}
+            >
+              <Icon sx={{ fontSize: 22 }} />
+              <Typography sx={{ fontSize: 10.5, fontWeight: active ? 600 : 500, lineHeight: 1.1 }}>
+                {item.label}
+              </Typography>
+            </Box>
+          );
+        })}
+      </Box>
+    </>
+  );
+
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
-      {/* ── BARRA LATERAL ESTRECHA ── */}
+      {/* ── BARRA LATERAL ── */}
       <Drawer
-        variant="permanent"
+        variant={isMobile ? 'temporary' : 'permanent'}
+        open={isMobile ? mobileOpen : true}
+        onClose={() => setMobileOpen(false)}
+        ModalProps={isMobile ? { keepMounted: true } : undefined}
         sx={{
-          width: DRAWER_WIDTH, flexShrink: 0,
+          width: isMobile ? 0 : drawerWidth, flexShrink: 0,
           '& .MuiDrawer-paper': {
-            width: DRAWER_WIDTH, boxSizing: 'border-box', border: 'none',
+            width: drawerWidth, boxSizing: 'border-box', border: 'none',
             background: sidebarBg,
             backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
             borderRight: `1px solid ${borderCol}`,
           },
         }}
       >
-        {/* Logo compacto */}
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 2.5 }}>
-          <Box sx={{
-            width: 44, height: 44, borderRadius: '14px',
-            background: 'linear-gradient(135deg, #2563EB, #0A1F44)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <LocalHospital sx={{ color: '#fff', fontSize: 24 }} />
-          </Box>
-        </Box>
-
-        {/* Módulos: ícono arriba + etiqueta debajo */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, px: 1 }}>
-          {visibleItems.map((item) => {
-            const Icon = item.icon;
-            const active = location.pathname === item.path;
-            return (
-              <Box
-                key={item.path}
-                onClick={() => navigate(item.path)}
-                sx={{
-                  display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  gap: 0.3, py: 1.2, borderRadius: '14px', cursor: 'pointer',
-                  background: active
-                    ? (isDark ? 'rgba(37,99,235,0.20)' : 'rgba(37,99,235,0.12)')
-                    : 'transparent',
-                  color: active ? '#2563EB' : (isDark ? '#9DA7B3' : '#5A6B85'),
-                  transition: 'all 0.15s',
-                  '&:hover': {
-                    background: isDark ? 'rgba(37,99,235,0.14)' : 'rgba(37,99,235,0.08)',
-                  },
-                }}
-              >
-                <Icon sx={{ fontSize: 22 }} />
-                <Typography sx={{ fontSize: 10.5, fontWeight: active ? 600 : 500, lineHeight: 1.1 }}>
-                  {item.label}
-                </Typography>
-              </Box>
-            );
-          })}
-        </Box>
+        {drawerContent}
       </Drawer>
 
       {/* ── ÁREA PRINCIPAL ── */}
-      <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+      <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <AppBar
           position="sticky" elevation={0}
           sx={{
@@ -101,9 +125,26 @@ const Layout = () => {
             borderBottom: `1px solid ${borderCol}`,
           }}
         >
-          <Toolbar sx={{ justifyContent: 'flex-end', gap: 1.5 }}>
+          <Toolbar sx={{ justifyContent: 'flex-end', gap: { xs: 1, md: 1.5 } }}>
+            {/* Botón hamburguesa: solo visible en móvil, abre el drawer temporal */}
+            {isMobile && (
+              <IconButton
+                onClick={() => setMobileOpen(true)}
+                sx={{ mr: 'auto', color: isDark ? '#9DA7B3' : '#5A6B85' }}
+              >
+                <MenuIcon />
+              </IconButton>
+            )}
             <ThemeToggle />
-            <Typography sx={{ color: 'text.secondary', fontSize: 14 }}>
+            {/* El email se oculta en móvil para dejar espacio; siempre visibles ThemeToggle y Avatar */}
+            <Typography
+              sx={{
+                color: 'text.secondary', fontSize: 14,
+                display: { xs: 'none', sm: 'block' },
+                maxWidth: { sm: 140, md: 'none' },
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}
+            >
               {user?.email}
             </Typography>
             <Tooltip title="Cuenta">
@@ -122,7 +163,7 @@ const Layout = () => {
           </Toolbar>
         </AppBar>
 
-        <Box sx={{ flexGrow: 1, p: 3 }}>
+        <Box sx={{ flexGrow: 1, p: { xs: 1.5, md: 3 } }}>
           <Outlet />
         </Box>
       </Box>
