@@ -10,11 +10,12 @@ import {
   Box, Drawer, AppBar, Toolbar, Typography, IconButton, Avatar,
   Menu, MenuItem, Tooltip, useMediaQuery, useTheme,
 } from '@mui/material';
-import { Logout, LocalHospital, Menu as MenuIcon } from '@mui/icons-material';
+import { Logout, Menu as MenuIcon } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { useColorMode } from '../context/ThemeContext';
 import { navItems } from '../config/navigation';
 import ThemeToggle from './ThemeToggle';
+import DentalDayMark from './DentalDayMark';
 
 const DRAWER_WIDTH = 92;
 const DRAWER_WIDTH_MOBILE = 112; // Un poco más ancho en móvil para que las etiquetas se lean bien
@@ -51,14 +52,16 @@ const Layout = () => {
   const drawerContent = (
     <>
       {/* Logo compacto */}
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 2.5 }}>
-        <Box sx={{
-          width: 44, height: 44, borderRadius: '14px',
-          background: 'linear-gradient(135deg, #2563EB, #0A1F44)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <LocalHospital sx={{ color: '#fff', fontSize: 24 }} />
-        </Box>
+      <Box sx={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        py: 2,
+        color: (theme) => theme.palette.mode === 'dark'
+          ? theme.palette.common.white
+          : theme.palette.primary.main,
+      }}>
+        <DentalDayMark size={40} />
       </Box>
 
       {/* Módulos: ícono arriba + etiqueta debajo */}

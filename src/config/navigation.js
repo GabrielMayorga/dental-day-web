@@ -14,7 +14,9 @@ export const navItems = [
   { label: 'Agenda',         path: '/agenda',        icon: CalendarMonth,    roles: ['admin', 'dentist', 'receptionist'] },
   { label: 'Pacientes',      path: '/pacientes',     icon: People,           roles: ['admin', 'dentist', 'receptionist'] },
   { label: 'Historias',      path: '/historias',     icon: MedicalServices,  roles: ['admin', 'dentist'] },
-  { label: 'Facturación',    path: '/facturacion',   icon: Receipt,          roles: ['admin', 'receptionist'] },
+  // Módulo de facturación: implementado a nivel de backend, fuera del
+  // alcance de los objetivos específicos de la tesis. Ver informe final.
+  // { label: 'Facturación',    path: '/facturacion',   icon: Receipt,          roles: ['admin', 'receptionist'] },
   { label: 'Notificaciones', path: '/notificaciones', icon: Notifications,   roles: ['admin', 'receptionist'] },
   { label: 'Reportes',       path: '/reportes',      icon: BarChart,         roles: ['admin', 'dentist'] },
   { label: 'Usuarios', path: '/usuarios', icon: AdminPanelSettings, roles: ['admin'] },

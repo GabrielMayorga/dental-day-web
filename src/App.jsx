@@ -17,8 +17,7 @@ import UsersPage from './pages/UsersPage';
 import ReportsPage from './pages/ReportsPage';
 import NotificationsPage from './pages/NotificationsPage';
 import RecordsPage from './pages/RecordsPage';
-import ComingSoon from './components/ComingSoon';
-import { Receipt } from '@mui/icons-material';
+import InvoicesPage from './pages/InvoicesPage';
 
 function App() {
   return (
@@ -42,7 +41,7 @@ function App() {
             <Route path="/agenda" element={<AgendaPage />} />
 
             <Route path="/historias" element={<RecordsPage />} />
-            <Route path="/facturacion" element={<ComingSoon title="Facturación" icon={Receipt} description="La gestión de pagos y comprobantes estará disponible muy pronto." />} />
+            <Route path="/facturacion" element={<InvoicesPage />} />
             <Route path="/notificaciones" element={<NotificationsPage />} />
             <Route path="/reportes" element={<ReportsPage />} />
             <Route path="/usuarios" element={<UsersPage />} />

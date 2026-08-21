@@ -3,12 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import {
   Box, TextField, Button, Typography, Alert, CircularProgress, InputAdornment,
 } from '@mui/material';
-import { LocalHospital, Email, Lock } from '@mui/icons-material';
+import { Email, Lock } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import AnimatedBackground from '../components/AnimatedBackground';
 import GlassCard from '../components/GlassCard';
 import ThemeToggle from '../components/ThemeToggle';
-import { useColorMode } from '../context/ThemeContext';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -16,8 +15,6 @@ const LoginPage = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { mode } = useColorMode();
-  const isDark = mode === 'dark';
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -49,12 +46,20 @@ const LoginPage = () => {
       >
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: { xs: 2, sm: 3 } }}>
           <Box sx={{
-            width: { xs: 48, sm: 56 }, height: { xs: 48, sm: 56 }, borderRadius: '16px', mb: 1.5,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.55)',
-            border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(255,255,255,0.7)',
+            display: 'flex',
+            justifyContent: 'center',
+            mb: 3,
+            px: 3,
+            py: 2,
+            borderRadius: '14px',
+            backgroundColor: '#FFFFFF',
           }}>
-            <LocalHospital sx={{ fontSize: { xs: 26, sm: 30 }, color: 'primary.dark' }} />
+            <Box
+              component="img"
+              src="/logo-full.png"
+              alt="Clínica Dental Day"
+              sx={{ width: '100%', maxWidth: 260, height: 'auto', display: 'block' }}
+            />
           </Box>
           <Typography
             variant="h6"

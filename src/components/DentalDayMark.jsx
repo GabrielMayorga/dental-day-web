@@ -1,0 +1,47 @@
+// src/components/DentalDayMark.jsx
+// ============================================================
+// Isotipo de la clínica Dental Day, adaptado para interfaz digital.
+// Derivado del logo oficial: conserva el concepto (diente con aparato
+// de ortodoncia) y el ámbar de la marca, simplificando el trazo para
+// que siga siendo legible en tamaños pequeños.
+//
+// CLAVE: el diente usa stroke="currentColor", así que hereda el color
+// del contenedor. Un mismo archivo se ve marino en modo claro y claro
+// en modo oscuro, sin duplicar assets.
+// ============================================================
+
+const ACENTO = '#F5A623'; // ámbar del logo oficial
+
+const DentalDayMark = ({ size = 40, accent = ACENTO, ...props }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 64 64"
+    width={size}
+    height={size}
+    role="img"
+    aria-label="Clínica Dental Day"
+    {...props}
+  >
+    <path
+      d="M32 8c-6.4 0-11 1.9-14.3 4.6C13.6 15.9 11.1 20.7 10.7 26.8c-.4 6.1 1 12.5 2.9 18.2 1 2.9 2.1 5.7 3.3 7.9 1.5 2.7 5.3 2.4 6.4-.5 1.2-3.3 1.9-7.3 2.6-10.7.5-2.5 1.2-4.7 2.1-6.2.9-1.4 2.1-2.1 3.8-2.1s2.9.7 3.8 2.1c.9 1.5 1.6 3.7 2.1 6.2.7 3.4 1.4 7.4 2.6 10.7 1.1 2.9 4.9 3.2 6.4.5 1.2-2.2 2.3-5 3.3-7.9 1.9-5.7 3.3-12.1 2.9-18.2-.4-6.1-2.9-10.9-7-14.2C43 9.9 38.4 8 32 8z"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="3.6"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M6 32.5C16 25 30 21.5 45 22.5c5 .3 9 1.2 13 2.8"
+      fill="none"
+      stroke={accent}
+      strokeWidth="2.6"
+      strokeLinecap="round"
+    />
+    <g fill={accent}>
+      <rect x="14.5" y="24.5" width="7.5" height="7.5" rx="1.8" transform="rotate(-20 18.2 28.2)" />
+      <rect x="28.2" y="20.6" width="7.5" height="7.5" rx="1.8" transform="rotate(-10 32 24.3)" />
+      <rect x="41.5" y="19.4" width="7.5" height="7.5" rx="1.8" transform="rotate(4 45.2 23.1)" />
+    </g>
+  </svg>
+);
+
+export default DentalDayMark;
