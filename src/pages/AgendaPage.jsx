@@ -27,10 +27,20 @@ import { translateStatus } from '../utils/appointmentStatus';
 // ── Helpers ──────────────────────────────────────────────────
 
 // Suma minutos a un string ISO y devuelve otro string ISO
+// Formatea en hora LOCAL de la clínica, sin convertir a UTC.
+// scheduled_at es TIMESTAMP sin zona: guarda hora de pared, no un
+// instante universal. toISOString() la desplazaría segun la zona del
+// navegador o del servidor, y las citas aparecerian corridas.
+const aHoraLocal = (date) => {
+  const p = (n) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())}`
+       + `T${p(date.getHours())}:${p(date.getMinutes())}:${p(date.getSeconds())}`;
+};
+
 const addMinutes = (isoString, minutes) => {
   const date = new Date(isoString);
   date.setMinutes(date.getMinutes() + minutes);
-  return date.toISOString();
+  return aHoraLocal(date);
 };
 
 // Transforma una cita del backend al formato que espera FullCalendar
