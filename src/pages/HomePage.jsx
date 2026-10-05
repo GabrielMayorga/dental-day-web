@@ -17,7 +17,7 @@ import { getAppointments, changeAppointmentStatus } from '../api/appointments';
 import { getNotifications } from '../api/notifications';
 import { getDashboard } from '../api/reports';
 import { translateStatus, STATUS_COLORS } from '../utils/appointmentStatus';
-import { clinica } from '../config/clinica';
+import { CLINICA } from '../config/clinica';
 import DentalDayMark from '../components/DentalDayMark';
 import { ListRowsSkeleton, KpiSkeleton } from '../components/Skeletons';
 import useReducedMotion, { REDUCED_MOTION_QUERY } from '../hooks/useReducedMotion';
@@ -411,22 +411,27 @@ const HomePage = () => {
           <DentalDayMark size={48} accent="currentColor" />
         </Box>
         <Box>
-          <Typography sx={{ fontWeight: 600, color: 'text.primary' }}>{clinica.nombre}</Typography>
-          <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>{clinica.lema}</Typography>
+          <Typography sx={{ fontWeight: 600, color: 'text.primary' }}>{CLINICA.nombre}</Typography>
+          <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>{CLINICA.lema}</Typography>
         </Box>
       </Box>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
-        {infoRow(AccessTime, clinica.horario.map((h) => (
+        {infoRow(AccessTime, CLINICA.horario.map((h) => (
           <Box key={h.dias}>
             {h.dias}: <Box component="span" sx={{ color: 'text.secondary' }}>{h.horas}</Box>
           </Box>
         )))}
         {infoRow(Phone, (
-          <Link href={`tel:${clinica.telefono.replace(/[^\d+]/g, '')}`} underline="hover" sx={{ color: 'inherit' }}>
-            {clinica.telefono}
+          <Link
+            href={CLINICA.telefono.href}
+            aria-label={`Llamar a ${CLINICA.nombre} al ${CLINICA.telefono.visible}`}
+            underline="hover"
+            sx={{ color: 'inherit' }}
+          >
+            {CLINICA.telefono.visible}
           </Link>
         ))}
-        {infoRow(Place, clinica.direccion)}
+        {infoRow(Place, `${CLINICA.direccion}, ${CLINICA.ciudad}`)}
       </Box>
     </Paper>
   );
