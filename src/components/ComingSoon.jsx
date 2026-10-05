@@ -1,23 +1,11 @@
 // src/components/ComingSoon.jsx
 // ============================================================
 // Pantalla reutilizable para módulos aún no disponibles.
-// Diseño elegante con glass y una animación sutil.
+// Diseño elegante con glass; estático (sin movimiento permanente).
 // ============================================================
-import { Box, Typography, keyframes } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import { AutoAwesome } from '@mui/icons-material';
 import { useColorMode } from '../context/ThemeContext';
-
-// El ícono "respira" suavemente (escala + opacidad)
-const breathe = keyframes`
-  0%, 100% { transform: scale(1); opacity: 0.85; }
-  50%      { transform: scale(1.08); opacity: 1; }
-`;
-
-// Un brillo que pulsa detrás del ícono
-const glow = keyframes`
-  0%, 100% { opacity: 0.4; transform: scale(1); }
-  50%      { opacity: 0.7; transform: scale(1.2); }
-`;
 
 /**
  * @param {string} title - Nombre del módulo (ej: "Facturación")
@@ -35,7 +23,7 @@ const ComingSoon = ({ title, icon: Icon = AutoAwesome, description }) => {
       alignItems: 'center', justifyContent: 'center',
       textAlign: 'center', px: 2,
     }}>
-      {/* Ícono con brillo animado */}
+      {/* Ícono con brillo de fondo */}
       <Box sx={{ position: 'relative', mb: 4 }}>
         {/* Brillo de fondo */}
         <Box sx={{
@@ -43,7 +31,6 @@ const ComingSoon = ({ title, icon: Icon = AutoAwesome, description }) => {
           width: 140, height: 140, borderRadius: '50%',
           background: 'radial-gradient(circle, rgba(37,99,235,0.5), transparent 70%)',
           filter: 'blur(20px)',
-          animation: `${glow} 4s ease-in-out infinite`,
         }} />
         {/* Tarjeta de vidrio con el ícono */}
         <Box sx={{
@@ -54,7 +41,6 @@ const ComingSoon = ({ title, icon: Icon = AutoAwesome, description }) => {
           backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
           border: isDark ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(255,255,255,0.7)',
           boxShadow: '0 16px 50px rgba(20,60,110,0.25)',
-          animation: `${breathe} 4s ease-in-out infinite`,
         }}>
           <Icon sx={{ fontSize: 52, color: '#2563EB' }} />
         </Box>

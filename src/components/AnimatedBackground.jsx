@@ -1,23 +1,11 @@
 // src/components/AnimatedBackground.jsx
 // ============================================================
-// Fondo con manchas de color en movimiento, adaptado a
-// modo claro/oscuro (como portfolios modernos).
+// Fondo con manchas de color difuminadas, adaptado a modo
+// claro/oscuro. Las manchas son estáticas: el sistema no usa
+// movimiento permanente (ver src/theme/motion.js).
 // ============================================================
-import { Box, keyframes } from '@mui/material';
+import { Box } from '@mui/material';
 import { useColorMode } from '../context/ThemeContext';
-
-const drift1 = keyframes`
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50%      { transform: translate(40px, -30px) scale(1.12); }
-`;
-const drift2 = keyframes`
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50%      { transform: translate(-35px, 25px) scale(1.1); }
-`;
-const drift3 = keyframes`
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50%      { transform: translate(25px, 30px) scale(1.08); }
-`;
 
 const AnimatedBackground = ({ children }) => {
   const { mode } = useColorMode();
@@ -48,19 +36,16 @@ const AnimatedBackground = ({ children }) => {
         position: 'absolute', width: 320, height: 320, borderRadius: '50%',
         top: '-80px', left: '-60px', background: blobs[0],
         filter: 'blur(70px)', opacity: isDark ? 0.5 : 0.55,
-        animation: `${drift1} 20s ease-in-out infinite`,
       }} />
       <Box sx={{
         position: 'absolute', width: 300, height: 300, borderRadius: '50%',
         bottom: '-70px', right: '-50px', background: blobs[1],
         filter: 'blur(70px)', opacity: isDark ? 0.45 : 0.5,
-        animation: `${drift2} 24s ease-in-out infinite`,
       }} />
       <Box sx={{
         position: 'absolute', width: 260, height: 260, borderRadius: '50%',
         bottom: '60px', left: '30%', background: blobs[2],
         filter: 'blur(80px)', opacity: isDark ? 0.4 : 0.4,
-        animation: `${drift3} 28s ease-in-out infinite`,
       }} />
 
       <Box sx={{ position: 'relative', zIndex: 1, width: '100%', display: 'flex', justifyContent: 'center' }}>

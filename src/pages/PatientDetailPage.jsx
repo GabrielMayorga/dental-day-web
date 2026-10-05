@@ -20,6 +20,7 @@ import {
 import { getPatient } from '../api/patients';
 import { getPatientRecords, createPatientRecord } from '../api/clinicalRecords';
 import { getDentists } from '../api/staff';
+import { DetailSkeleton, CardListSkeleton } from '../components/Skeletons';
 
 // ── Mapas de etiquetas ────────────────────────────────────────
 const GENDER_LABEL = {
@@ -208,9 +209,7 @@ const PatientDetailPage = () => {
   // ── Render: cargando paciente ─────────────────────────────────
   if (loadingPatient) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 320 }}>
-        <CircularProgress sx={{ color: 'secondary.main' }} />
-      </Box>
+      <DetailSkeleton paperSx={{ border: glassBorder, background: glassBg }} />
     );
   }
 
@@ -343,9 +342,7 @@ const PatientDetailPage = () => {
 
         {/* Cargando registros */}
         {canViewHistory && loadingRecords && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-            <CircularProgress size={32} sx={{ color: 'secondary.main' }} />
-          </Box>
+          <CardListSkeleton count={3} lines={2} paperSx={{ border: glassBorder, background: glassBg }} />
         )}
 
         {/* Sin registros aún */}

@@ -11,10 +11,13 @@ import {
   Box, Typography, Button, Paper, Chip, Switch,
   Table, TableHead, TableBody, TableRow, TableCell, TableContainer,
   CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions,
-  MenuItem, TextField, Alert, Tooltip, FormControl, InputLabel, Select,
+  MenuItem, TextField, Alert, Tooltip, FormControl, Select,
+  Snackbar, useTheme, useMediaQuery,
 } from '@mui/material';
 import { PersonAdd } from '@mui/icons-material';
 import { getUsers, createUser, changeUserRole, changeUserStatus } from '../api/users';
+import AnimatedList from '../components/AnimatedList';
+import { CardListSkeleton, TableRowsSkeleton } from '../components/Skeletons';
 
 // ── Catálogo de roles ────────────────────────────────────────
 const ROLES = [
@@ -22,13 +25,6 @@ const ROLES = [
   { value: 'dentist',       label: 'Odontólogo'    },
   { value: 'receptionist',  label: 'Recepcionista'  },
 ];
-
-// Color del chip según rol
-const ROLE_CHIP_COLOR = {
-  admin:        { bg: 'rgba(37,99,235,0.12)',  color: '#2563EB' },
-  dentist:      { bg: 'rgba(29,158,117,0.12)', color: '#1D9E75' },
-  receptionist: { bg: 'rgba(124,58,237,0.12)', color: '#7C3AED' },
-};
 
 // Traduce el valor de BD al label en español
 const roleLabel = (value) =>
@@ -65,9 +61,14 @@ const UsersPage = () => {
   const glassBorder = isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(255,255,255,0.6)';
   const dialogBg    = isDark ? 'rgba(22,27,34,0.92)' : 'rgba(255,255,255,0.92)';
 
+  // Detección de móvil para alternar entre la tabla y las tarjetas
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
   // ── Estado de la lista ───────────────────────────────────────
   const [users, setUsers]           = useState([]);
-  const [loadingList, setLoadingList] = useState(true);
+  const [loadingList, setLoadingList] = useState(true);   // solo primera carga
+  const [refreshing, setRefreshing]   = useState(false);  // recargas tras acciones
 
   // ── Estado del diálogo de creación ──────────────────────────
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -81,14 +82,27 @@ const UsersPage = () => {
   const [pendingRole,   setPendingRole]   = useState(new Set());
   const [pendingStatus, setPendingStatus] = useState(new Set());
 
+  // ── Confirmación de cambio de rol ───────────────────────────
+  // roleConfirm = { user, newRole } mientras hay un cambio pendiente de confirmar
+  const [roleConfirm, setRoleConfirm] = useState(null);
+  const [roleSaving,  setRoleSaving]  = useState(false);
+
+  // ── Snackbar de errores del backend ─────────────────────────
+  const [snackbar, setSnackbar] = useState({ open: false, message: '' });
+  const closeSnackbar = () => setSnackbar((s) => ({ ...s, open: false }));
+
   // ── Carga de usuarios ────────────────────────────────────────
+  // El skeleton solo cubre la primera carga; las recargas (tras crear
+  // o cambiar estado) atenúan la lista sin desmontarla, para que las
+  // filas no vuelvan a animar su entrada.
   const fetchUsers = useCallback(async () => {
-    setLoadingList(true);
+    setRefreshing(true);
     try {
       const data = await getUsers();
       setUsers(data ?? []);
     } finally {
       setLoadingList(false);
+      setRefreshing(false);
     }
   }, []);
 
@@ -96,22 +110,44 @@ const UsersPage = () => {
     fetchUsers();
   }, [fetchUsers]);
 
-  // ── Cambio de rol en línea ───────────────────────────────────
-  const handleRoleChange = async (userId, newRole) => {
-    setPendingRole((prev) => new Set(prev).add(userId));
+  // ── Cambio de rol: paso 1, pedir confirmación ───────────────
+  const handleRoleSelect = (u, newRole) => {
+    if (newRole === u.role_name) return; // no hay cambio
+    setRoleConfirm({ user: u, newRole });
+  };
+
+  const handleCancelRoleChange = () => {
+    if (roleSaving) return; // no cerrar mientras se aplica
+    setRoleConfirm(null);
+  };
+
+  // ── Cambio de rol: paso 2, aplicar tras confirmar ──────────
+  const handleConfirmRoleChange = async () => {
+    if (!roleConfirm) return;
+    const { user: u, newRole } = roleConfirm;
+    setRoleSaving(true);
+    setPendingRole((prev) => new Set(prev).add(u.id));
     try {
-      await changeUserRole(userId, newRole);
-      // Actualiza optimistamente la lista local
+      await changeUserRole(u.id, newRole);
+      // Actualiza la lista local sin recargar todo (igual que handleStatusToggle)
       setUsers((prev) =>
-        prev.map((u) => (u.id === userId ? { ...u, role_name: newRole } : u))
+        prev.map((x) => (x.id === u.id ? { ...x, role_name: newRole } : x))
       );
-    } catch {
-      // Si falla, refresca desde el backend para mantener consistencia
-      fetchUsers();
+      setRoleConfirm(null);
+    } catch (err) {
+      setSnackbar({
+        open: true,
+        message:
+          err.response?.data?.error ||
+          err.response?.data?.message ||
+          'Error al cambiar el rol',
+      });
+      setRoleConfirm(null);
     } finally {
+      setRoleSaving(false);
       setPendingRole((prev) => {
         const next = new Set(prev);
-        next.delete(userId);
+        next.delete(u.id);
         return next;
       });
     }
@@ -135,6 +171,83 @@ const UsersPage = () => {
         return next;
       });
     }
+  };
+
+  // ── Control de rol reutilizable (tabla y tarjetas) ──────────
+  const renderRoleControl = (u) => {
+    const isSelf       = u.id === currentUser?.id;
+    const roleChanging = pendingRole.has(u.id);
+
+    const select = (
+      <FormControl size="small" sx={{ minWidth: 150 }} disabled={isSelf || roleChanging}>
+        <Select
+          value={u.role_name}
+          onChange={(e) => handleRoleSelect(u, e.target.value)}
+          sx={{
+            fontSize: 13,
+            borderRadius: '10px',
+            '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(10,31,68,0.15)' },
+          }}
+        >
+          {ROLES.map((r) => (
+            <MenuItem key={r.value} value={r.value} sx={{ fontSize: 13 }}>
+              {r.label}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+    );
+
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        {isSelf ? (
+          <Tooltip title="No puedes cambiar tu propio rol">
+            {/* span necesario para que el Tooltip funcione sobre un control deshabilitado */}
+            <Box component="span">{select}</Box>
+          </Tooltip>
+        ) : (
+          select
+        )}
+        {roleChanging && <CircularProgress size={16} sx={{ color: '#2563EB' }} />}
+      </Box>
+    );
+  };
+
+  // ── Interruptor de estado reutilizable (tabla y tarjetas) ───
+  const renderStatusControl = (u) => {
+    const isSelf         = u.id === currentUser?.id;
+    const statusChanging = pendingStatus.has(u.id);
+
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Tooltip
+          title={
+            isSelf
+              ? 'No puedes desactivar tu propia cuenta'
+              : u.is_active
+                ? 'Desactivar usuario'
+                : 'Activar usuario'
+          }
+        >
+          {/* Box necesario para que Tooltip funcione con elemento disabled */}
+          <Box component="span">
+            <Switch
+              checked={!!u.is_active}
+              disabled={isSelf || statusChanging}
+              onChange={() => handleStatusToggle(u.id, u.is_active)}
+              size="small"
+              sx={{
+                '& .MuiSwitch-switchBase.Mui-checked': { color: '#2563EB' },
+                '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                  backgroundColor: '#2563EB',
+                },
+              }}
+            />
+          </Box>
+        </Tooltip>
+        {statusChanging && <CircularProgress size={16} sx={{ color: '#2563EB' }} />}
+      </Box>
+    );
   };
 
   // ── Manejo del formulario ────────────────────────────────────
@@ -225,7 +338,81 @@ const UsersPage = () => {
         </Button>
       </Box>
 
-      {/* Tabla envuelta en glass card */}
+      {isMobile ? (
+        // ── Lista de tarjetas (móvil): reemplaza la tabla ──────
+        loadingList ? (
+          <CardListSkeleton count={4} lines={3} paperSx={{ border: glassBorder, background: glassBg }} />
+        ) : (
+        <AnimatedList refreshing={refreshing} sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+
+          {!loadingList && users.length === 0 && (
+            <Box sx={{ textAlign: 'center', py: 6, color: 'text.secondary', fontSize: 14 }}>
+              No hay usuarios registrados
+            </Box>
+          )}
+
+          {!loadingList && users.map((u) => (
+            <Paper
+              key={u.id}
+              elevation={0}
+              sx={{
+                borderRadius: '14px',
+                border: glassBorder,
+                background: glassBg,
+                backdropFilter: 'blur(16px)',
+                WebkitBackdropFilter: 'blur(16px)',
+                p: 1.75,
+              }}
+            >
+              {/* Correo + estado */}
+              <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1 }}>
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography sx={{ color: 'text.primary', fontWeight: 600, fontSize: 15, wordBreak: 'break-word' }}>
+                    {u.email}
+                  </Typography>
+                  {u.full_name && (
+                    <Typography sx={{ color: 'text.secondary', fontSize: 12.5, mt: 0.25 }}>
+                      {u.full_name}
+                    </Typography>
+                  )}
+                </Box>
+                <Chip
+                  label={u.is_active ? 'Activo' : 'Inactivo'}
+                  size="small"
+                  sx={{
+                    flexShrink: 0,
+                    background: u.is_active ? 'rgba(29,158,117,0.12)' : 'rgba(0,0,0,0.07)',
+                    color: u.is_active ? '#1D9E75' : 'text.secondary',
+                    fontWeight: 600,
+                    fontSize: 12,
+                  }}
+                />
+              </Box>
+
+              {/* Rol + interruptor de estado */}
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 1,
+                  rowGap: 1,
+                  mt: 1.5,
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>Rol</Typography>
+                  {renderRoleControl(u)}
+                </Box>
+                {renderStatusControl(u)}
+              </Box>
+            </Paper>
+          ))}
+        </AnimatedList>
+        )
+      ) : (
+      // ── Tabla envuelta en glass card (escritorio) ──────────
       <Paper
         elevation={0}
         sx={{
@@ -249,15 +436,13 @@ const UsersPage = () => {
               </TableRow>
             </TableHead>
 
-            <TableBody>
-              {/* Cargando */}
-              {loadingList && (
-                <TableRow>
-                  <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
-                    <CircularProgress size={32} sx={{ color: '#2563EB' }} />
-                  </TableCell>
-                </TableRow>
-              )}
+            {/* Cargando */}
+            {loadingList ? (
+              <TableBody>
+                <TableRowsSkeleton rows={5} cols={4} actions={2} />
+              </TableBody>
+            ) : (
+            <AnimatedList component={TableBody} refreshing={refreshing}>
 
               {/* Sin usuarios */}
               {!loadingList && users.length === 0 && (
@@ -270,11 +455,7 @@ const UsersPage = () => {
 
               {/* Filas */}
               {!loadingList && users.map((u) => {
-                const isSelf        = u.id === currentUser?.id;
-                const roleColors    = ROLE_CHIP_COLOR[u.role_name] ?? { bg: 'rgba(0,0,0,0.08)', color: 'text.secondary' };
-                const roleChanging  = pendingRole.has(u.id);
-                const statusChanging = pendingStatus.has(u.id);
-                const fullName      = u.full_name || '--';
+                const fullName = u.full_name || '--';
 
                 return (
                   <TableRow
@@ -287,19 +468,9 @@ const UsersPage = () => {
                       {u.email}
                     </TableCell>
 
-                    {/* Chip de rol */}
+                    {/* Selector de rol */}
                     <TableCell>
-                      <Chip
-                        label={roleLabel(u.role_name)}
-                        size="small"
-                        sx={{
-                          background: roleColors.bg,
-                          color: roleColors.color,
-                          fontWeight: 600,
-                          fontSize: 12,
-                          border: 'none',
-                        }}
-                      />
+                      {renderRoleControl(u)}
                     </TableCell>
 
                     {/* Nombre (solo odontólogos lo tienen) */}
@@ -323,70 +494,77 @@ const UsersPage = () => {
                       />
                     </TableCell>
 
-                    {/* Acciones: select de rol + toggle de estado */}
+                    {/* Acciones: interruptor de estado */}
                     <TableCell sx={{ py: 0.5 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center' }}>
-                        {/* Selector de rol */}
-                        <FormControl size="small" sx={{ minWidth: 140 }} disabled={roleChanging}>
-                          <Select
-                            value={u.role_name}
-                            onChange={(e) => handleRoleChange(u.id, e.target.value)}
-                            sx={{
-                              fontSize: 13,
-                              borderRadius: '10px',
-                              '& .MuiOutlinedInput-notchedOutline': {
-                                borderColor: 'rgba(10,31,68,0.15)',
-                              },
-                            }}
-                          >
-                            {ROLES.map((r) => (
-                              <MenuItem key={r.value} value={r.value} sx={{ fontSize: 13 }}>
-                                {r.label}
-                              </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-
-                        {/* Toggle activo/inactivo */}
-                        <Tooltip
-                          title={
-                            isSelf
-                              ? 'No puedes desactivar tu propia cuenta'
-                              : u.is_active
-                                ? 'Desactivar usuario'
-                                : 'Activar usuario'
-                          }
-                        >
-                          {/* Box necesario para que Tooltip funcione con elemento disabled */}
-                          <Box component="span">
-                            <Switch
-                              checked={!!u.is_active}
-                              disabled={isSelf || statusChanging}
-                              onChange={() => handleStatusToggle(u.id, u.is_active)}
-                              size="small"
-                              sx={{
-                                '& .MuiSwitch-switchBase.Mui-checked': { color: '#2563EB' },
-                                '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                                  backgroundColor: '#2563EB',
-                                },
-                              }}
-                            />
-                          </Box>
-                        </Tooltip>
-
-                        {/* Spinner durante cambio de estado */}
-                        {statusChanging && (
-                          <CircularProgress size={16} sx={{ color: '#2563EB' }} />
-                        )}
+                      <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                        {renderStatusControl(u)}
                       </Box>
                     </TableCell>
                   </TableRow>
                 );
               })}
-            </TableBody>
+            </AnimatedList>
+            )}
           </Table>
         </TableContainer>
       </Paper>
+      )}
+
+      {/* ── Diálogo: confirmar cambio de rol ────────────────────── */}
+      <Dialog
+        open={Boolean(roleConfirm)}
+        onClose={handleCancelRoleChange}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '16px',
+            background: dialogBg,
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            boxShadow: isDark
+              ? '0 20px 60px rgba(0,0,0,0.45)'
+              : '0 20px 60px rgba(20,60,110,0.15)',
+          },
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 600, color: 'text.primary', pb: 0.5 }}>
+          ¿Cambiar rol de usuario?
+        </DialogTitle>
+
+        <DialogContent>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
+            ¿Cambiar el rol de{' '}
+            <strong>{roleConfirm?.user.full_name || roleConfirm?.user.email}</strong>{' '}
+            de <strong>{roleLabel(roleConfirm?.user.role_name)}</strong> a{' '}
+            <strong>{roleLabel(roleConfirm?.newRole)}</strong>? Esto modifica de
+            inmediato a qué partes del sistema puede acceder.
+          </Typography>
+        </DialogContent>
+
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={handleCancelRoleChange}
+            disabled={roleSaving}
+            sx={{ borderRadius: '12px', color: 'text.secondary' }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleConfirmRoleChange}
+            disabled={roleSaving}
+            sx={{
+              borderRadius: '12px',
+              minWidth: 110,
+              background: '#2563EB',
+              '&:hover': { background: '#1D4ED8' },
+            }}
+          >
+            {roleSaving ? <CircularProgress size={20} color="inherit" /> : 'Cambiar rol'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* ── Diálogo: crear usuario ──────────────────────────────── */}
       <Dialog
@@ -545,6 +723,23 @@ const UsersPage = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* ── Snackbar: errores del backend ───────────────────────── */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={closeSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          severity="error"
+          variant="filled"
+          onClose={closeSnackbar}
+          sx={{ borderRadius: '12px' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

@@ -3,7 +3,7 @@
 // Módulo de pacientes: lista, búsqueda, alta, edición y
 // desactivación de pacientes. Vive dentro del Layout.
 // ============================================================
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useColorMode } from '../context/ThemeContext';
 import {
@@ -17,6 +17,8 @@ import {
   Phone, Email, LocationOn, Bloodtype,
 } from '@mui/icons-material';
 import { getPatients, createPatient, updatePatient, deletePatient } from '../api/patients';
+import AnimatedList from '../components/AnimatedList';
+import { CardListSkeleton, TableRowsSkeleton } from '../components/Skeletons';
 
 // ── Opciones de los selects ──────────────────────────────────
 const GENDER_OPTIONS = [
@@ -46,6 +48,20 @@ const EMPTY_FORM = {
 // Ejemplo: "1990-05-15T00:00:00.000Z" → "1990-05-15"
 const toBirthDate = (iso) => (iso ? iso.substring(0, 10) : '');
 
+// ── Validación de teléfono ──────────────────────────────────
+// Regla: al menos 8 dígitos. Se permiten números, espacios,
+// guiones, paréntesis y el signo +. El campo es opcional:
+// un valor vacío se considera válido.
+const PHONE_ALLOWED_RE = /^[\d\s()+-]+$/;
+const PHONE_ERROR_MSG = 'Debe contener al menos 8 dígitos';
+
+const isPhoneValid = (value) => {
+  const v = (value || '').trim();
+  if (!v) return true; // opcional
+  if (!PHONE_ALLOWED_RE.test(v)) return false;
+  return (v.match(/\d/g) || []).length >= 8;
+};
+
 // ── Estilo compartido para las celdas de encabezado ──────────
 const HEADER_CELL_SX = {
   fontWeight: 600,
@@ -71,7 +87,8 @@ const PatientsPage = () => {
 
   // ── Estado de la lista ───────────────────────────────────────
   const [patients, setPatients]       = useState([]);
-  const [loadingList, setLoadingList] = useState(true);
+  const [loadingList, setLoadingList] = useState(true);   // solo primera carga
+  const [refreshing, setRefreshing]   = useState(false);  // búsquedas y recargas
   const [searchText, setSearchText]   = useState('');
 
   // ── Estado del diálogo de crear / editar ────────────────────
@@ -80,6 +97,8 @@ const PatientsPage = () => {
   const [form, setForm]             = useState(EMPTY_FORM);
   const [saving, setSaving]         = useState(false);
   const [formError, setFormError]   = useState('');
+  // Errores de validación por campo de teléfono, ej: { phone: true }
+  const [phoneErrors, setPhoneErrors] = useState({});
 
   // ── Estado del diálogo de confirmación (desactivar) ─────────
   const [confirmPatient, setConfirmPatient] = useState(null); // null = cerrado
@@ -89,26 +108,39 @@ const PatientsPage = () => {
   // ── Carga de pacientes ───────────────────────────────────────
   // fetchPatients se puede llamar con o sin query; siempre
   // actualiza el estado de la lista.
+  // El skeleton (loadingList) solo cubre la PRIMERA carga. Las recargas
+  // (búsqueda, guardar, desactivar) marcan `refreshing` y la lista sigue
+  // montada: si se reemplazara por el skeleton, las filas volverían a
+  // animar su entrada.
+  const requestId = useRef(0);
   const fetchPatients = useCallback(async (query = '') => {
-    setLoadingList(true);
+    const id = ++requestId.current;
+    setRefreshing(true);
     try {
       const data = await getPatients(query);
-      setPatients(data ?? []);
+      // Descarta respuestas de búsquedas ya superadas
+      if (id === requestId.current) setPatients(data ?? []);
     } finally {
-      setLoadingList(false);
+      if (id === requestId.current) {
+        setLoadingList(false);
+        setRefreshing(false);
+      }
     }
   }, []);
 
-  // Carga inicial
+  // ── Carga inicial + búsqueda con debounce (400 ms) ──────────
+  // Un solo efecto: la primera vez consulta sin espera; después, solo
+  // si el texto cambió respecto a la última consulta. Así no se repite
+  // la petición al montar (ni con el doble efecto de StrictMode).
+  const lastQuery = useRef(null);
   useEffect(() => {
-    fetchPatients();
-  }, [fetchPatients]);
-
-  // ── Debounce de búsqueda (400 ms) ────────────────────────────
-  useEffect(() => {
+    const query = searchText.trim();
+    if (query === lastQuery.current) return undefined;
+    const delay = lastQuery.current === null ? 0 : 400;
     const timer = setTimeout(() => {
-      fetchPatients(searchText.trim());
-    }, 400);
+      lastQuery.current = query;
+      fetchPatients(query);
+    }, delay);
     return () => clearTimeout(timer);
   }, [searchText, fetchPatients]);
 
@@ -116,13 +148,24 @@ const PatientsPage = () => {
   const handleFieldChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+    // Al editar limpiamos el error previo; la revalidación ocurre en onBlur
+    setPhoneErrors((prev) => (prev[name] ? { ...prev, [name]: false } : prev));
   };
+
+  // Valida un campo de teléfono al perder el foco (no en cada tecla)
+  const handlePhoneBlur = (e) => {
+    const { name, value } = e.target;
+    setPhoneErrors((prev) => ({ ...prev, [name]: !isPhoneValid(value) }));
+  };
+
+  const hasPhoneErrors = Object.values(phoneErrors).some(Boolean);
 
   // Abre el diálogo en modo CREAR
   const handleOpenCreate = () => {
     setEditingId(null);
     setForm(EMPTY_FORM);
     setFormError('');
+    setPhoneErrors({});
     setDialogOpen(true);
   };
 
@@ -140,6 +183,7 @@ const PatientsPage = () => {
       allergies:  patient.allergies  || '',
     });
     setFormError('');
+    setPhoneErrors({});
     setDialogOpen(true);
   };
 
@@ -259,13 +303,13 @@ const PatientsPage = () => {
 
       {isMobile ? (
         // ── Lista de tarjetas (móvil): reemplaza la tabla ──────
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
-          {/* Estado: cargando */}
-          {loadingList && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-              <CircularProgress size={32} sx={{ color: 'secondary.main' }} />
-            </Box>
-          )}
+        loadingList ? (
+          <CardListSkeleton
+            count={5}
+            paperSx={{ border: glassBorder, background: glassBg }}
+          />
+        ) : (
+        <AnimatedList refreshing={refreshing} sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
 
           {/* Estado: sin resultados */}
           {!loadingList && patients.length === 0 && (
@@ -360,7 +404,8 @@ const PatientsPage = () => {
               </Paper>
             );
           })}
-        </Box>
+        </AnimatedList>
+        )
       ) : (
         // ── Tabla (escritorio): sin cambios respecto al diseño original ──
         <Paper
@@ -388,15 +433,13 @@ const PatientsPage = () => {
                 </TableRow>
               </TableHead>
 
-              <TableBody>
-                {/* Estado: cargando */}
-                {loadingList && (
-                  <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
-                      <CircularProgress size={32} sx={{ color: 'secondary.main' }} />
-                    </TableCell>
-                  </TableRow>
-                )}
+              {/* Estado: cargando */}
+              {loadingList ? (
+                <TableBody>
+                  <TableRowsSkeleton rows={6} cols={4} actions={3} />
+                </TableBody>
+              ) : (
+              <AnimatedList component={TableBody} refreshing={refreshing}>
 
                 {/* Estado: sin resultados */}
                 {!loadingList && patients.length === 0 && (
@@ -455,7 +498,8 @@ const PatientsPage = () => {
                     </TableCell>
                   </TableRow>
                 ))}
-              </TableBody>
+              </AnimatedList>
+              )}
             </Table>
           </TableContainer>
         </Paper>
@@ -547,6 +591,10 @@ const PatientsPage = () => {
               name="phone"
               value={form.phone}
               onChange={handleFieldChange}
+              onBlur={handlePhoneBlur}
+              error={Boolean(phoneErrors.phone)}
+              helperText={phoneErrors.phone ? PHONE_ERROR_MSG : ''}
+              inputProps={{ inputMode: 'tel' }}
               fullWidth
               size="small"
             />
@@ -600,7 +648,7 @@ const PatientsPage = () => {
           <Button
             variant="contained"
             onClick={handleSave}
-            disabled={saving || !form.first_name || !form.last_name}
+            disabled={saving || !form.first_name || !form.last_name || hasPhoneErrors}
             sx={{ borderRadius: '12px', minWidth: 110 }}
           >
             {saving ? <CircularProgress size={20} color="inherit" /> : 'Guardar'}

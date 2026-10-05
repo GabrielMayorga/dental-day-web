@@ -17,9 +17,12 @@ export const createUser = async (data) => {
 };
 
 // Cambia el rol de un usuario
+
+// src/api/users.js — agregar junto a changeUserStatus
+
 export const changeUserRole = async (id, role) => {
   const response = await api.patch(`/users/${id}/role`, { role });
-  return response.data.data;
+  return response.data;
 };
 
 // Activa o desactiva un usuario

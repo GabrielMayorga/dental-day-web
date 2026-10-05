@@ -6,7 +6,11 @@ import api from './client';
 
 // Obtiene los datos del dashboard. El backend decide el alcance
 // (global para admin, personal para odontólogo) según el token.
-export const getDashboard = async () => {
-  const response = await api.get('/reports/dashboard');
+// from / to son opcionales, en hora local: 'YYYY-MM-DDTHH:mm:ss'.
+export const getDashboard = async ({ from = null, to = null } = {}) => {
+  const params = {};
+  if (from) params.from = from;
+  if (to) params.to = to;
+  const response = await api.get('/reports/dashboard', { params });
   return response.data.data;
 };

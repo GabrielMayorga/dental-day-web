@@ -10,7 +10,7 @@ import { useColorMode } from '../context/ThemeContext';
 import {
   Box, Typography, Button, TextField,
   Table, TableHead, TableBody, TableRow, TableCell, TableContainer,
-  CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions,
+  CircularProgress, Skeleton, Dialog, DialogTitle, DialogContent, DialogActions,
   MenuItem, Alert, Paper, IconButton, Tooltip, Chip, Divider, Stack,
   FormControl, InputLabel, Select, Autocomplete, useTheme, useMediaQuery,
 } from '@mui/material';
@@ -18,6 +18,7 @@ import { Add, Delete, Visibility } from '@mui/icons-material';
 import { getInvoices, getInvoice, createInvoice, changeInvoiceStatus } from '../api/invoices';
 import { getPatients } from '../api/patients';
 import { getTreatments } from '../api/treatments';
+import { CardListSkeleton, TableRowsSkeleton } from '../components/Skeletons';
 
 // ── Traducción y color de los estados de factura ─────────────
 const STATUS_LABELS = {
@@ -389,9 +390,7 @@ const InvoicesPage = () => {
         // ── Lista de tarjetas (móvil): reemplaza la tabla ──────
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
           {loadingList && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-              <CircularProgress size={32} sx={{ color: 'secondary.main' }} />
-            </Box>
+            <CardListSkeleton count={4} lines={2} paperSx={{ border: glassBorder, background: glassBg }} />
           )}
 
           {!loadingList && invoices.length === 0 && (
@@ -472,13 +471,7 @@ const InvoicesPage = () => {
               </TableHead>
 
               <TableBody>
-                {loadingList && (
-                  <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
-                      <CircularProgress size={32} sx={{ color: 'secondary.main' }} />
-                    </TableCell>
-                  </TableRow>
-                )}
+                {loadingList && <TableRowsSkeleton rows={5} cols={4} actions={1} />}
 
                 {!loadingList && invoices.length === 0 && (
                   <TableRow>
@@ -545,8 +538,11 @@ const InvoicesPage = () => {
 
         <DialogContent dividers sx={{ px: { xs: 2, md: 3 } }}>
           {detailLoading && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-              <CircularProgress size={28} sx={{ color: 'secondary.main' }} />
+            <Box sx={{ py: 1 }}>
+              <Skeleton variant="text" width="45%" sx={{ fontSize: 18 }} />
+              <Skeleton variant="text" width="30%" sx={{ mb: 2 }} />
+              <Skeleton variant="rounded" height={120} sx={{ borderRadius: '10px', mb: 2 }} />
+              <Skeleton variant="text" width="25%" sx={{ ml: 'auto', fontSize: 20 }} />
             </Box>
           )}
 

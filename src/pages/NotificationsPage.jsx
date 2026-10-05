@@ -6,12 +6,14 @@
 // ============================================================
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Box, Typography, Paper, Chip, CircularProgress, Divider, Alert,
+  Box, Typography, Paper, Chip, Divider, Alert, Skeleton,
 } from '@mui/material';
 import { Phone, EventBusy } from '@mui/icons-material';
 import { getNotifications } from '../api/notifications';
 import { translateStatus } from '../utils/appointmentStatus';
 import { useColorMode } from '../context/ThemeContext';
+import AnimatedList from '../components/AnimatedList';
+import { ListRowsSkeleton } from '../components/Skeletons';
 
 // ── Secciones y su orden de aparición ───────────────────────
 const GROUPS = [
@@ -79,8 +81,16 @@ const NotificationsPage = () => {
 
       {/* Estado: cargando */}
       {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-          <CircularProgress size={32} sx={{ color: 'secondary.main' }} />
+        <Box>
+          <Skeleton variant="text" width={180} sx={{ fontSize: 14, mb: 2.5 }} />
+          {[3, 2].map((rows, g) => (
+            <Box key={g} sx={{ mb: 3.5 }}>
+              <Skeleton variant="text" width={110} sx={{ fontSize: 22, mb: 1.5 }} />
+              <Paper elevation={0} sx={{ borderRadius: '16px', border: glassBorder, background: glassBg, px: 2, py: 1 }}>
+                <ListRowsSkeleton rows={rows} dot={false} />
+              </Paper>
+            </Box>
+          ))}
         </Box>
       )}
 
@@ -123,6 +133,7 @@ const NotificationsPage = () => {
           )}
 
           {/* Secciones agrupadas: Hoy / Mañana / Esta semana */}
+          <AnimatedList>
           {GROUPS.map(({ key, label }) => {
             const groupItems = items.filter((item) => item.group === key);
             if (groupItems.length === 0) return null;
@@ -246,6 +257,7 @@ const NotificationsPage = () => {
               </Box>
             );
           })}
+          </AnimatedList>
         </>
       )}
     </Box>

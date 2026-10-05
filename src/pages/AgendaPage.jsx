@@ -23,6 +23,7 @@ import { getTreatments } from '../api/treatments';
 import { useColorMode } from '../context/ThemeContext';
 import '../styles/calendar.css';
 import { translateStatus } from '../utils/appointmentStatus';
+import { CalendarSkeleton } from '../components/Skeletons';
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -413,12 +414,10 @@ export default function AgendaPage() {
         </Select>
       </FormControl>
 
-      {/* Calendario o spinner de carga */}
+      {/* Calendario o esqueleto de carga */}
       <Paper elevation={0} sx={glassPaperSx}>
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-            <CircularProgress sx={{ color: 'secondary.main' }} />
-          </Box>
+          <CalendarSkeleton columns={isMobile ? 1 : 7} />
         ) : (
           <FullCalendar
             // La key fuerza un remontaje al cruzar el breakpoint móvil/escritorio

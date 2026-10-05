@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   Box, Drawer, AppBar, Toolbar, Typography, IconButton, Avatar,
-  Menu, MenuItem, Tooltip, useMediaQuery, useTheme,
+  Menu, MenuItem, Tooltip, Fade, useMediaQuery, useTheme,
 } from '@mui/material';
 import { Logout, Menu as MenuIcon } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
@@ -16,6 +16,7 @@ import { useColorMode } from '../context/ThemeContext';
 import { navItems } from '../config/navigation';
 import ThemeToggle from './ThemeToggle';
 import DentalDayMark from './DentalDayMark';
+import { duration, easing } from '../theme/motion';
 
 const DRAWER_WIDTH = 92;
 const DRAWER_WIDTH_MOBILE = 112; // Un poco más ancho en móvil para que las etiquetas se lean bien
@@ -167,7 +168,13 @@ const Layout = () => {
         </AppBar>
 
         <Box sx={{ flexGrow: 1, p: { xs: 1.5, md: 3 } }}>
-          <Outlet />
+          {/* Fade al cambiar de ruta: la key remonta solo el contenido;
+              barra lateral y cabecera no se tocan. */}
+          <Fade key={location.pathname} in appear timeout={duration.base} easing={easing.enter}>
+            <Box>
+              <Outlet />
+            </Box>
+          </Fade>
         </Box>
       </Box>
     </Box>

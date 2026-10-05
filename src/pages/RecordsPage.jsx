@@ -10,12 +10,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Box, Typography, Paper, CircularProgress, Alert,
+  Box, Typography, Paper, Alert,
   Table, TableHead, TableBody, TableRow, TableCell, TableContainer,
 } from '@mui/material';
 import { MedicalInformation } from '@mui/icons-material';
 import { getRecentRecords } from '../api/clinicalRecords';
 import { useColorMode } from '../context/ThemeContext';
+import AnimatedList from '../components/AnimatedList';
+import { TableRowsSkeleton } from '../components/Skeletons';
 
 // ── Longitud máxima antes de truncar textos largos ───────────
 const MAX_TEXT_LENGTH = 60;
@@ -88,9 +90,15 @@ const RecordsPage = () => {
 
       {/* Estado: cargando */}
       {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-          <CircularProgress size={32} sx={{ color: 'secondary.main' }} />
-        </Box>
+        <Paper elevation={0} sx={{ borderRadius: '16px', border: glassBorder, background: glassBg, overflow: 'hidden' }}>
+          <TableContainer>
+            <Table>
+              <TableBody>
+                <TableRowsSkeleton rows={6} cols={5} />
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
       )}
 
       {/* Estado: error */}
@@ -151,7 +159,7 @@ const RecordsPage = () => {
                     </TableRow>
                   </TableHead>
 
-                  <TableBody>
+                  <AnimatedList component={TableBody}>
                     {records.map((record) => (
                       <TableRow
                         key={record.id}
@@ -227,7 +235,7 @@ const RecordsPage = () => {
                         </TableCell>
                       </TableRow>
                     ))}
-                  </TableBody>
+                  </AnimatedList>
                 </Table>
               </TableContainer>
             </Paper>
