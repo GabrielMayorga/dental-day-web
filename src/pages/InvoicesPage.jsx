@@ -116,10 +116,8 @@ const InvoicesPage = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  // Fondo glass adaptado al modo (mismo patrón que PatientsPage)
-  const glassBg = isDark ? 'rgba(22,27,34,0.70)' : 'rgba(255,255,255,0.70)';
-  const glassBorder = isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(255,255,255,0.6)';
-  const dialogBg = isDark ? 'rgba(22,27,34,0.92)' : 'rgba(255,255,255,0.92)';
+  // Niveles de vidrio centralizados en el tema (theme.glass)
+  const { glass } = useTheme();
   const lineItemBg = isDark ? 'rgba(255,255,255,0.03)' : 'rgba(10,31,68,0.02)';
 
   // ── Estado de la lista ───────────────────────────────────────
@@ -390,7 +388,7 @@ const InvoicesPage = () => {
         // ── Lista de tarjetas (móvil): reemplaza la tabla ──────
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
           {loadingList && (
-            <CardListSkeleton count={4} lines={2} paperSx={{ border: glassBorder, background: glassBg }} />
+            <CardListSkeleton count={4} lines={2} paperSx={glass.dense} />
           )}
 
           {!loadingList && invoices.length === 0 && (
@@ -406,10 +404,7 @@ const InvoicesPage = () => {
               onClick={() => handleOpenDetail(inv.id)}
               sx={{
                 borderRadius: '14px',
-                border: glassBorder,
-                background: glassBg,
-                backdropFilter: 'blur(16px)',
-                WebkitBackdropFilter: 'blur(16px)',
+                ...glass.dense,
                 p: 1.75,
                 cursor: 'pointer',
               }}
@@ -449,10 +444,7 @@ const InvoicesPage = () => {
           elevation={0}
           sx={{
             borderRadius: '16px',
-            border: glassBorder,
-            background: glassBg,
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
+            ...glass.dense,
             overflow: 'hidden',
           }}
         >
@@ -525,9 +517,6 @@ const InvoicesPage = () => {
         PaperProps={{
           sx: {
             borderRadius: { xs: 0, md: '20px' },
-            background: dialogBg,
-            backdropFilter: 'blur(24px)',
-            WebkitBackdropFilter: 'blur(24px)',
             boxShadow: isDark ? '0 20px 60px rgba(0,0,0,0.45)' : '0 20px 60px rgba(20,60,110,0.2)',
           },
         }}
@@ -682,9 +671,6 @@ const InvoicesPage = () => {
         PaperProps={{
           sx: {
             borderRadius: { xs: 0, md: '20px' },
-            background: dialogBg,
-            backdropFilter: 'blur(24px)',
-            WebkitBackdropFilter: 'blur(24px)',
             boxShadow: isDark ? '0 20px 60px rgba(0,0,0,0.45)' : '0 20px 60px rgba(20,60,110,0.2)',
           },
         }}
@@ -792,7 +778,7 @@ const InvoicesPage = () => {
                       gap: 1.5,
                       p: 1.25,
                       borderRadius: '10px',
-                      border: glassBorder,
+                      border: `1px solid ${glass.edge}`,
                       background: lineItemBg,
                     }}
                   >

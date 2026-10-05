@@ -8,8 +8,50 @@ import DialogTransition from '../components/DialogTransition';
 import { duration, easing } from './motion';
 import { REDUCED_MOTION_QUERY } from '../hooks/useReducedMotion';
 
-export const getTheme = (mode) =>
-  createTheme({
+export const REDUCED_TRANSPARENCY_QUERY = '(prefers-reduced-transparency: reduce)';
+const NO_BACKDROP_FILTER =
+  '@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)))';
+
+// ── Niveles de vidrio ──────────────────────────────────────────
+// Objetos listos para esparcir en `sx` según el tipo de superficie:
+//   card   → resúmenes, KPIs, panel del día, notificaciones
+//   dense  → agenda, tablas, formularios y diálogos (casi opaco:
+//            la legibilidad de grillas y campos va primero)
+//   chrome → barra lateral y barra superior (sin borde propio)
+// Sin backdrop-filter se cae a alpha 0.95; con transparencia
+// reducida, superficie opaca.
+const getGlass = (mode) => {
+  const isLight = mode === 'light';
+  const tint = isLight ? '255,255,255' : '22,27,34'; // = background.paper
+  const solid = isLight ? '#FFFFFF' : '#161B22';
+  const edge = isLight ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.08)';
+  const blur = 'blur(16px) saturate(140%)';
+
+  const surface = (a, { bordered = true } = {}) => ({
+    background: `rgba(${tint},${a})`,
+    backdropFilter: blur,
+    WebkitBackdropFilter: blur,
+    ...(bordered && { border: `1px solid ${edge}` }),
+    [NO_BACKDROP_FILTER]: { background: `rgba(${tint},${Math.max(a, 0.95)})` },
+    [`@media ${REDUCED_TRANSPARENCY_QUERY}`]: {
+      background: solid, backdropFilter: 'none', WebkitBackdropFilter: 'none',
+    },
+  });
+
+  return {
+    edge,
+    card:   surface(isLight ? 0.65 : 0.55),
+    dense:  surface(isLight ? 0.94 : 0.92),
+    chrome: surface(0.75, { bordered: false }),
+  };
+};
+
+export const getTheme = (mode) => {
+  const glass = getGlass(mode);
+
+  return createTheme({
+    glass,
+
     palette: {
       mode,
       primary: mode === 'light'
@@ -101,6 +143,7 @@ export const getTheme = (mode) =>
     components: {
       MuiDialog: {
         defaultProps: { slots: { transition: DialogTransition } },
+        styleOverrides: { paper: glass.dense },
       },
       // Pulso (opacidad) en vez de onda (desplazamiento)
       MuiSkeleton: {
@@ -141,3 +184,4 @@ export const getTheme = (mode) =>
       },
     },
   });
+};

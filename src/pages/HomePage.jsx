@@ -128,23 +128,26 @@ const HomePage = () => {
   const showKpis = KPI_ROLES.includes(user?.role);
 
   // ── Superficies ─────────────────────────────────────────────
-  // Jerarquía por peso. En claro: glass con gradiente leve y más sombra
-  // en el bloque principal. En oscuro las sombras no se ven, así que la
-  // elevación es por luminosidad (palette.surface, niveles 1–3) más un
-  // borde superior luminoso; al pasar el mouse la tarjeta sube un nivel.
+  // Vidrio nivel "card" del tema (theme.glass.card). La jerarquía va
+  // por peso: en claro, más sombra en el bloque principal; en oscuro
+  // las sombras no se ven, así que el tinte sube por luminosidad
+  // (palette.surface, niveles 1–3) más un borde superior luminoso; al
+  // pasar el mouse la tarjeta sube un nivel.
   const paper = theme.palette.background.paper;
   const surfaces = theme.palette.surface;
   const surfaceSx = (principal) => {
-    const base = { borderRadius: '14px', p: { xs: 2, md: 3 }, position: 'relative' };
+    const base = {
+      ...theme.glass.card,
+      borderRadius: '14px', p: { xs: 2, md: 3 }, position: 'relative',
+    };
     if (isDark) {
       const nivel = principal ? 2 : 1;
       return {
         ...base,
-        backgroundColor: surfaces[nivel],
-        border: `1px solid ${alpha(theme.palette.common.white, 0.06)}`,
+        backgroundColor: alpha(surfaces[nivel], 0.55),
         transition: transition('background-color', 'fast', 'enter'),
         // Si el mouse está sobre una fila de cita, sube la fila, no la tarjeta
-        '&:hover:not(:has([data-row]:hover))': { backgroundColor: surfaces[nivel + 1] },
+        '&:hover:not(:has([data-row]:hover))': { backgroundColor: alpha(surfaces[nivel + 1], 0.7) },
         '&::before': {
           content: '""', position: 'absolute', top: -1, left: 0, right: 0, height: '1px',
           pointerEvents: 'none',
@@ -152,13 +155,8 @@ const HomePage = () => {
         },
       };
     }
-    const op = principal ? 0.84 : 0.64;
     return {
       ...base,
-      background: `linear-gradient(165deg, ${alpha(paper, Math.min(op + 0.12, 1))} 0%, ${alpha(paper, op)} 100%)`,
-      backdropFilter: 'blur(16px)',
-      WebkitBackdropFilter: 'blur(16px)',
-      border: `1px solid ${theme.palette.divider}`,
       boxShadow: principal
         ? `0 12px 32px ${alpha(theme.palette.primary.main, 0.12)}`
         : `0 4px 14px ${alpha(theme.palette.primary.main, 0.05)}`,

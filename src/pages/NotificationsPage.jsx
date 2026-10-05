@@ -6,12 +6,11 @@
 // ============================================================
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Box, Typography, Paper, Chip, Divider, Alert, Skeleton,
+  Box, Typography, Paper, Chip, Divider, Alert, Skeleton, useTheme,
 } from '@mui/material';
 import { Phone, EventBusy } from '@mui/icons-material';
 import { getNotifications } from '../api/notifications';
 import { translateStatus } from '../utils/appointmentStatus';
-import { useColorMode } from '../context/ThemeContext';
 import AnimatedList from '../components/AnimatedList';
 import { ListRowsSkeleton } from '../components/Skeletons';
 
@@ -33,16 +32,12 @@ const formatHour = (iso) => {
 };
 
 const NotificationsPage = () => {
-  const { mode } = useColorMode();
-  const isDark = mode === 'dark';
-
   const [data, setData]       = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState('');
 
-  // Fondo glass sutil adaptado al modo
-  const glassBg     = isDark ? 'rgba(22,27,34,0.70)' : 'rgba(255,255,255,0.70)';
-  const glassBorder = isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(255,255,255,0.6)';
+  // Niveles de vidrio centralizados en el tema (theme.glass)
+  const { glass } = useTheme();
 
   const fetchNotifications = useCallback(async () => {
     setLoading(true);
@@ -86,7 +81,7 @@ const NotificationsPage = () => {
           {[3, 2].map((rows, g) => (
             <Box key={g} sx={{ mb: 3.5 }}>
               <Skeleton variant="text" width={110} sx={{ fontSize: 22, mb: 1.5 }} />
-              <Paper elevation={0} sx={{ borderRadius: '16px', border: glassBorder, background: glassBg, px: 2, py: 1 }}>
+              <Paper elevation={0} sx={{ borderRadius: '16px', ...glass.card, px: 2, py: 1 }}>
                 <ListRowsSkeleton rows={rows} dot={false} />
               </Paper>
             </Box>
@@ -114,10 +109,7 @@ const NotificationsPage = () => {
               elevation={0}
               sx={{
                 borderRadius: '16px',
-                border: glassBorder,
-                background: glassBg,
-                backdropFilter: 'blur(16px)',
-                WebkitBackdropFilter: 'blur(16px)',
+                ...glass.card,
                 py: 8,
                 display: 'flex',
                 flexDirection: 'column',
@@ -148,10 +140,7 @@ const NotificationsPage = () => {
                   elevation={0}
                   sx={{
                     borderRadius: '16px',
-                    border: glassBorder,
-                    background: glassBg,
-                    backdropFilter: 'blur(16px)',
-                    WebkitBackdropFilter: 'blur(16px)',
+                    ...glass.card,
                     overflow: 'hidden',
                   }}
                 >

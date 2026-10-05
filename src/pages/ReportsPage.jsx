@@ -188,11 +188,8 @@ const ReportsPage = () => {
   const { mode } = useColorMode();
   const isDark = mode === 'dark';
 
-  // Tokens de estilo glass coherentes con el resto de la app
-  const glassBg     = isDark ? 'rgba(22,27,34,0.70)' : 'rgba(255,255,255,0.70)';
-  const glassBorder = isDark
-    ? '1px solid rgba(255,255,255,0.08)'
-    : '1px solid rgba(255,255,255,0.6)';
+  // Niveles de vidrio centralizados en el tema (theme.glass)
+  const { glass } = useTheme();
 
   // Color de ejes y grillas de recharts según el modo
   const chartAxisColor = isDark ? '#9DA7B3' : '#5A6B85';
@@ -249,7 +246,7 @@ const ReportsPage = () => {
   // ── Esqueleto de carga ───────────────────────────────────────
   if (loading) {
     // Esqueleto con la forma del panel: filtros, 4 KPIs y 2 gráficos
-    const paperSx = { border: glassBorder, background: glassBg };
+    const paperSx = glass.card;
     return (
       <Box>
         <Skeleton variant="text" width={220} sx={{ fontSize: 28 }} />
@@ -308,10 +305,7 @@ const ReportsPage = () => {
           position: 'relative',
           overflow: 'hidden',
           borderRadius: '14px',
-          border: glassBorder,
-          background: glassBg,
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
+          ...glass.dense, // filtros: formulario, casi opaco
           p: 2,
           mb: 3,
         }}
@@ -416,10 +410,7 @@ const ReportsPage = () => {
               elevation={0}
               sx={{
                 borderRadius: '16px',
-                border: glassBorder,
-                background: glassBg,
-                backdropFilter: 'blur(16px)',
-                WebkitBackdropFilter: 'blur(16px)',
+                ...glass.card,
                 p: 2.5,
                 display: 'flex',
                 alignItems: 'center',
@@ -477,10 +468,7 @@ const ReportsPage = () => {
           elevation={0}
           sx={{
             borderRadius: '16px',
-            border: glassBorder,
-            background: glassBg,
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
+            ...glass.card,
             p: 4,
             textAlign: 'center',
           }}
@@ -498,10 +486,7 @@ const ReportsPage = () => {
             elevation={0}
             sx={{
               borderRadius: '16px',
-              border: glassBorder,
-              background: glassBg,
-              backdropFilter: 'blur(16px)',
-              WebkitBackdropFilter: 'blur(16px)',
+              ...glass.card,
               p: 3,
             }}
           >
@@ -587,10 +572,7 @@ const ReportsPage = () => {
               elevation={0}
               sx={{
                 borderRadius: '16px',
-                border: glassBorder,
-                background: glassBg,
-                backdropFilter: 'blur(16px)',
-                WebkitBackdropFilter: 'blur(16px)',
+                ...glass.card,
                 p: 3,
               }}
             >

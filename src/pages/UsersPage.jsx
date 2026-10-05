@@ -56,10 +56,8 @@ const UsersPage = () => {
   const { user: currentUser } = useAuth();
   const isDark = mode === 'dark';
 
-  // Tokens de estilo glass coherentes con el resto de la app
-  const glassBg     = isDark ? 'rgba(22,27,34,0.70)' : 'rgba(255,255,255,0.70)';
-  const glassBorder = isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(255,255,255,0.6)';
-  const dialogBg    = isDark ? 'rgba(22,27,34,0.92)' : 'rgba(255,255,255,0.92)';
+  // Niveles de vidrio centralizados en el tema (theme.glass)
+  const { glass } = useTheme();
 
   // Detección de móvil para alternar entre la tabla y las tarjetas
   const theme = useTheme();
@@ -341,7 +339,7 @@ const UsersPage = () => {
       {isMobile ? (
         // ── Lista de tarjetas (móvil): reemplaza la tabla ──────
         loadingList ? (
-          <CardListSkeleton count={4} lines={3} paperSx={{ border: glassBorder, background: glassBg }} />
+          <CardListSkeleton count={4} lines={3} paperSx={glass.dense} />
         ) : (
         <AnimatedList refreshing={refreshing} sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
 
@@ -357,10 +355,7 @@ const UsersPage = () => {
               elevation={0}
               sx={{
                 borderRadius: '14px',
-                border: glassBorder,
-                background: glassBg,
-                backdropFilter: 'blur(16px)',
-                WebkitBackdropFilter: 'blur(16px)',
+                ...glass.dense,
                 p: 1.75,
               }}
             >
@@ -417,10 +412,7 @@ const UsersPage = () => {
         elevation={0}
         sx={{
           borderRadius: '16px',
-          border: glassBorder,
-          background: glassBg,
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
+          ...glass.dense,
           overflow: 'hidden',
         }}
       >
@@ -519,9 +511,6 @@ const UsersPage = () => {
         PaperProps={{
           sx: {
             borderRadius: '16px',
-            background: dialogBg,
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
             boxShadow: isDark
               ? '0 20px 60px rgba(0,0,0,0.45)'
               : '0 20px 60px rgba(20,60,110,0.15)',
@@ -575,9 +564,6 @@ const UsersPage = () => {
         PaperProps={{
           sx: {
             borderRadius: '20px',
-            background: dialogBg,
-            backdropFilter: 'blur(24px)',
-            WebkitBackdropFilter: 'blur(24px)',
             boxShadow: isDark
               ? '0 20px 60px rgba(0,0,0,0.45)'
               : '0 20px 60px rgba(20,60,110,0.2)',

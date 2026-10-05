@@ -11,7 +11,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Paper, Alert,
-  Table, TableHead, TableBody, TableRow, TableCell, TableContainer,
+  Table, TableHead, TableBody, TableRow, TableCell, TableContainer, useTheme,
 } from '@mui/material';
 import { MedicalInformation } from '@mui/icons-material';
 import { getRecentRecords } from '../api/clinicalRecords';
@@ -51,9 +51,8 @@ const RecordsPage = () => {
   const { mode } = useColorMode();
   const isDark = mode === 'dark';
 
-  // Fondo glass sutil adaptado al modo (mismo patrón que el resto del proyecto)
-  const glassBg     = isDark ? 'rgba(22,27,34,0.70)' : 'rgba(255,255,255,0.70)';
-  const glassBorder = isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(255,255,255,0.6)';
+  // Niveles de vidrio centralizados en el tema (theme.glass)
+  const { glass } = useTheme();
 
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -90,7 +89,7 @@ const RecordsPage = () => {
 
       {/* Estado: cargando */}
       {loading && (
-        <Paper elevation={0} sx={{ borderRadius: '16px', border: glassBorder, background: glassBg, overflow: 'hidden' }}>
+        <Paper elevation={0} sx={{ borderRadius: '16px', ...glass.dense, overflow: 'hidden' }}>
           <TableContainer>
             <Table>
               <TableBody>
@@ -116,10 +115,7 @@ const RecordsPage = () => {
               elevation={0}
               sx={{
                 borderRadius: '16px',
-                border: glassBorder,
-                background: glassBg,
-                backdropFilter: 'blur(16px)',
-                WebkitBackdropFilter: 'blur(16px)',
+                ...glass.dense,
                 py: 8,
                 display: 'flex',
                 flexDirection: 'column',
@@ -140,10 +136,7 @@ const RecordsPage = () => {
               elevation={0}
               sx={{
                 borderRadius: '16px',
-                border: glassBorder,
-                background: glassBg,
-                backdropFilter: 'blur(16px)',
-                WebkitBackdropFilter: 'blur(16px)',
+                ...glass.dense,
                 overflow: 'hidden',
               }}
             >

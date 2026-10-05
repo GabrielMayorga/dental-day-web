@@ -75,10 +75,8 @@ const PatientsPage = () => {
   const { mode } = useColorMode();
   const isDark = mode === 'dark';
 
-  // Fondo glass adaptado al modo
-  const glassBg = isDark ? 'rgba(22,27,34,0.70)' : 'rgba(255,255,255,0.70)';
-  const glassBorder = isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(255,255,255,0.6)';
-  const dialogBg = isDark ? 'rgba(22,27,34,0.92)' : 'rgba(255,255,255,0.92)';
+  // Niveles de vidrio centralizados en el tema (theme.glass)
+  const { glass } = useTheme();
 
   // Detección de móvil (menor al breakpoint 'md') para alternar
   // entre la tabla de escritorio y la lista de tarjetas
@@ -297,7 +295,7 @@ const PatientsPage = () => {
               <Search sx={{ color: 'text.secondary', fontSize: 20 }} />
             </InputAdornment>
           ),
-          sx: { borderRadius: '12px', background: isDark ? 'rgba(22,27,34,0.65)' : 'rgba(255,255,255,0.7)' },
+          sx: { borderRadius: '12px', ...glass.dense },
         }}
       />
 
@@ -306,7 +304,7 @@ const PatientsPage = () => {
         loadingList ? (
           <CardListSkeleton
             count={5}
-            paperSx={{ border: glassBorder, background: glassBg }}
+            paperSx={glass.dense}
           />
         ) : (
         <AnimatedList refreshing={refreshing} sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
@@ -330,10 +328,7 @@ const PatientsPage = () => {
                 onClick={() => navigate(`/pacientes/${id}`)}
                 sx={{
                   borderRadius: '14px',
-                  border: glassBorder,
-                  background: glassBg,
-                  backdropFilter: 'blur(16px)',
-                  WebkitBackdropFilter: 'blur(16px)',
+                  ...glass.dense,
                   p: 1.75,
                   cursor: 'pointer',
                 }}
@@ -412,10 +407,7 @@ const PatientsPage = () => {
           elevation={0}
           sx={{
             borderRadius: '16px',
-            border: glassBorder,
-            background: glassBg,
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
+            ...glass.dense,
             overflow: 'hidden',
           }}
         >
@@ -515,9 +507,6 @@ const PatientsPage = () => {
         PaperProps={{
           sx: {
             borderRadius: { xs: 0, md: '20px' },
-            background: dialogBg,
-            backdropFilter: 'blur(24px)',
-            WebkitBackdropFilter: 'blur(24px)',
             boxShadow: isDark ? '0 20px 60px rgba(0,0,0,0.45)' : '0 20px 60px rgba(20,60,110,0.2)',
           },
         }}
@@ -665,9 +654,6 @@ const PatientsPage = () => {
         PaperProps={{
           sx: {
             borderRadius: '16px',
-            background: dialogBg,
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
             boxShadow: isDark ? '0 20px 60px rgba(0,0,0,0.45)' : '0 20px 60px rgba(20,60,110,0.15)',
           },
         }}

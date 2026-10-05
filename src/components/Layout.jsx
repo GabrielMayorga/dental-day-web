@@ -16,6 +16,7 @@ import { useColorMode } from '../context/ThemeContext';
 import { navItems } from '../config/navigation';
 import ThemeToggle from './ThemeToggle';
 import DentalDayMark from './DentalDayMark';
+import SystemBackground from './SystemBackground';
 import { duration, easing } from '../theme/motion';
 
 const DRAWER_WIDTH = 92;
@@ -36,9 +37,7 @@ const Layout = () => {
 
   const visibleItems = navItems.filter((item) => item.roles.includes(user?.role));
 
-  // Colores de superficie según el modo
-  const sidebarBg = isDark ? 'rgba(22,27,34,0.90)' : 'rgba(255,255,255,0.80)';
-  const headerBg  = isDark ? 'rgba(22,27,34,0.75)' : 'rgba(255,255,255,0.75)';
+  // Línea divisoria de las barras (el vidrio viene de theme.glass.chrome)
   const borderCol = isDark ? '#30363D'             : 'rgba(0,0,0,0.06)';
 
   const drawerWidth = isMobile ? DRAWER_WIDTH_MOBILE : DRAWER_WIDTH;
@@ -99,7 +98,11 @@ const Layout = () => {
   );
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
+    // Sin bgcolor propio: el color base lo da el body, y así la capa
+    // de fondo (z-index -1) queda visible detrás del contenido.
+    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+      <SystemBackground />
+
       {/* ── BARRA LATERAL ── */}
       <Drawer
         variant={isMobile ? 'temporary' : 'permanent'}
@@ -110,8 +113,7 @@ const Layout = () => {
           width: isMobile ? 0 : drawerWidth, flexShrink: 0,
           '& .MuiDrawer-paper': {
             width: drawerWidth, boxSizing: 'border-box', border: 'none',
-            background: sidebarBg,
-            backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
+            ...theme.glass.chrome,
             borderRight: `1px solid ${borderCol}`,
           },
         }}
@@ -124,8 +126,7 @@ const Layout = () => {
         <AppBar
           position="sticky" elevation={0}
           sx={{
-            background: headerBg,
-            backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
+            ...theme.glass.chrome,
             borderBottom: `1px solid ${borderCol}`,
           }}
         >

@@ -119,28 +119,22 @@ const FORM_EMPTY = {
 // ── Componente principal ──────────────────────────────────────
 export default function AgendaPage() {
   const { mode } = useColorMode();
-  const isDark = mode === 'dark';
 
   // Detección de móvil (menor al breakpoint 'md') para alternar
   // vista inicial del calendario, toolbar, diálogos fullScreen, etc.
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  // ── Estilos glass — dependen del modo ────────────────────────
+  // ── Estilos glass — niveles centralizados en theme.glass ──
+  // La agenda es una grilla: nivel denso, casi opaco.
   const glassPaperSx = {
-    background: isDark ? 'rgba(22,27,34,0.70)' : 'rgba(255,255,255,0.72)',
-    backdropFilter: 'blur(16px)',
-    WebkitBackdropFilter: 'blur(16px)',
-    border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(10,31,68,0.10)',
+    ...theme.glass.dense,
     borderRadius: 3,
     p: { xs: 2, md: 3 },
   };
 
+  // El vidrio del diálogo lo pone el tema (MuiDialog → glass.dense)
   const dialogPaperSx = {
-    background: isDark ? 'rgba(22,27,34,0.92)' : 'rgba(255,255,255,0.94)',
-    backdropFilter: 'blur(20px)',
-    WebkitBackdropFilter: 'blur(20px)',
-    border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(10,31,68,0.10)',
     // En pantalla completa (móvil) no queremos esquinas redondeadas
     borderRadius: { xs: 0, md: '16px' },
     minWidth: { xs: '100%', sm: '480px' },

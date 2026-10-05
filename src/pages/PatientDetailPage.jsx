@@ -10,7 +10,7 @@ import { useColorMode } from '../context/ThemeContext';
 import {
   Box, Typography, Button, Paper, Chip, Divider,
   CircularProgress, Dialog, DialogTitle, DialogContent,
-  DialogActions, TextField, MenuItem, Alert,
+  DialogActions, TextField, MenuItem, Alert, useTheme,
 } from '@mui/material';
 import {
   ArrowBack, Phone, LocationCity, Cake, Person,
@@ -93,10 +93,8 @@ const PatientDetailPage = () => {
   const { mode }     = useColorMode();
   const isDark       = mode === 'dark';
 
-  // Estilos glass adaptados al modo de color
-  const glassBg     = isDark ? 'rgba(22,27,34,0.70)' : 'rgba(255,255,255,0.70)';
-  const glassBorder = isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(255,255,255,0.6)';
-  const dialogBg    = isDark ? 'rgba(22,27,34,0.92)' : 'rgba(255,255,255,0.92)';
+  // Niveles de vidrio centralizados en el tema (theme.glass)
+  const { glass } = useTheme();
   const dividerClr  = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(10,31,68,0.08)';
 
   // Solo admin y dentist pueden ver la historia clínica
@@ -209,7 +207,7 @@ const PatientDetailPage = () => {
   // ── Render: cargando paciente ─────────────────────────────────
   if (loadingPatient) {
     return (
-      <DetailSkeleton paperSx={{ border: glassBorder, background: glassBg }} />
+      <DetailSkeleton paperSx={glass.card} />
     );
   }
 
@@ -261,10 +259,7 @@ const PatientDetailPage = () => {
         elevation={0}
         sx={{
           borderRadius: '20px',
-          border: glassBorder,
-          background: glassBg,
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
+          ...glass.card,
           p: 3,
           mb: 4,
         }}
@@ -318,10 +313,7 @@ const PatientDetailPage = () => {
             elevation={0}
             sx={{
               borderRadius: '20px',
-              border: glassBorder,
-              background: glassBg,
-              backdropFilter: 'blur(16px)',
-              WebkitBackdropFilter: 'blur(16px)',
+              ...glass.card,
               p: 6,
               display: 'flex',
               flexDirection: 'column',
@@ -342,7 +334,7 @@ const PatientDetailPage = () => {
 
         {/* Cargando registros */}
         {canViewHistory && loadingRecords && (
-          <CardListSkeleton count={3} lines={2} paperSx={{ border: glassBorder, background: glassBg }} />
+          <CardListSkeleton count={3} lines={2} paperSx={glass.card} />
         )}
 
         {/* Sin registros aún */}
@@ -351,10 +343,7 @@ const PatientDetailPage = () => {
             elevation={0}
             sx={{
               borderRadius: '20px',
-              border: glassBorder,
-              background: glassBg,
-              backdropFilter: 'blur(16px)',
-              WebkitBackdropFilter: 'blur(16px)',
+              ...glass.card,
               p: 5,
               display: 'flex',
               flexDirection: 'column',
@@ -378,10 +367,7 @@ const PatientDetailPage = () => {
                 elevation={0}
                 sx={{
                   borderRadius: '16px',
-                  border: glassBorder,
-                  background: glassBg,
-                  backdropFilter: 'blur(16px)',
-                  WebkitBackdropFilter: 'blur(16px)',
+                  ...glass.card,
                   p: 3,
                 }}
               >
@@ -443,9 +429,6 @@ const PatientDetailPage = () => {
         PaperProps={{
           sx: {
             borderRadius: '20px',
-            background: dialogBg,
-            backdropFilter: 'blur(24px)',
-            WebkitBackdropFilter: 'blur(24px)',
             boxShadow: isDark
               ? '0 20px 60px rgba(0,0,0,0.45)'
               : '0 20px 60px rgba(20,60,110,0.2)',

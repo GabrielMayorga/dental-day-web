@@ -3,7 +3,7 @@
 // Pantalla reutilizable para módulos aún no disponibles.
 // Diseño elegante con glass; estático (sin movimiento permanente).
 // ============================================================
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, useTheme } from '@mui/material';
 import { AutoAwesome } from '@mui/icons-material';
 import { useColorMode } from '../context/ThemeContext';
 
@@ -15,6 +15,7 @@ import { useColorMode } from '../context/ThemeContext';
 const ComingSoon = ({ title, icon: Icon = AutoAwesome, description }) => {
   const { mode } = useColorMode();
   const isDark = mode === 'dark';
+  const { glass } = useTheme();
 
   return (
     <Box sx={{
@@ -37,9 +38,7 @@ const ComingSoon = ({ title, icon: Icon = AutoAwesome, description }) => {
           position: 'relative',
           width: 110, height: 110, borderRadius: '28px',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: isDark ? 'rgba(22,27,34,0.70)' : 'rgba(255,255,255,0.65)',
-          backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-          border: isDark ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(255,255,255,0.7)',
+          ...glass.card,
           boxShadow: '0 16px 50px rgba(20,60,110,0.25)',
         }}>
           <Icon sx={{ fontSize: 52, color: '#2563EB' }} />
