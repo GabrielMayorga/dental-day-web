@@ -1,0 +1,22 @@
+/* src/styles/theme-transition.css
+   ============================================================
+   Fundido de colores al alternar claro/oscuro. La clase la pone
+   y la quita useThemeTransition (src/theme/useThemeTransition.js)
+   solo durante 400ms (= duration.slow de src/theme/motion.js).
+
+   - Se enumeran propiedades a propósito, nunca `all`: incluir
+     transform u opacity arrastraría las entradas de las tarjetas.
+   - !important para ganarle a las transiciones propias de MUI
+     durante esos 400ms.
+   ============================================================ */
+.cambiando-tema,
+.cambiando-tema *,
+.cambiando-tema *::before,
+.cambiando-tema *::after {
+  transition:
+    background-color 400ms cubic-bezier(0.4, 0, 0.2, 1),
+    border-color     400ms cubic-bezier(0.4, 0, 0.2, 1),
+    color            400ms cubic-bezier(0.4, 0, 0.2, 1),
+    fill             400ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow       400ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+}

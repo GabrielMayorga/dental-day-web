@@ -4,7 +4,7 @@
 // - Recuerda la preferencia en localStorage.
 // - La primera vez, detecta el modo del sistema operativo.
 // ============================================================
-import { createContext, useContext, useState, useMemo, useEffect } from 'react';
+import { createContext, useContext, useState, useMemo, useEffect, useCallback } from 'react';
 import { ThemeProvider as MuiThemeProvider, CssBaseline } from '@mui/material';
 import { getTheme } from '../theme/theme';
 
@@ -27,10 +27,11 @@ export const ColorModeProvider = ({ children }) => {
     localStorage.setItem('colorMode', mode);
   }, [mode]);
 
-  // Alterna entre claro y oscuro
-  const toggleMode = () => {
+  // Alterna entre claro y oscuro. Estable entre renders para que
+  // useThemeTransition pueda memorizar su envoltorio.
+  const toggleMode = useCallback(() => {
     setMode((prev) => (prev === 'light' ? 'dark' : 'light'));
-  };
+  }, []);
 
   // Genera el tema solo cuando cambia el modo (optimización)
   const theme = useMemo(() => getTheme(mode), [mode]);

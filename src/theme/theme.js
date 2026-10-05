@@ -4,17 +4,28 @@
 // suaves), oscuro estilo GitHub. Alto contraste y legibilidad.
 // ============================================================
 import { createTheme } from '@mui/material/styles';
+import DialogTransition from '../components/DialogTransition';
+import { duration, easing } from './motion';
+import { REDUCED_MOTION_QUERY } from '../hooks/useReducedMotion';
 
 export const getTheme = (mode) =>
   createTheme({
     palette: {
       mode,
-      primary: {
-        main: '#0A1F44',      // azul marino Plandok
-        light: '#1C3A6E',
-        dark: '#061229',
-        contrastText: '#FFFFFF',
-      },
+      primary: mode === 'light'
+        ? {
+            main: '#0A1F44',      // azul marino Plandok
+            light: '#1C3A6E',
+            dark: '#061229',
+            contrastText: '#FFFFFF',
+          }
+        : {
+            // En oscuro el marino desaparece sobre #0D1117: azules más luminosos
+            main: '#3B82F6',
+            light: '#60A5FA',
+            dark: '#2563EB',
+            contrastText: '#FFFFFF',
+          },
       secondary: {
         main: '#2563EB',      // azul vivo para botones/acentos
       },
@@ -42,6 +53,14 @@ export const getTheme = (mode) =>
               secondary: '#9DA7B3',
             },
             divider: '#30363D',
+            // Elevación por luminosidad: en oscuro las sombras no se ven,
+            // así que cada nivel de jerarquía es una superficie más clara.
+            surface: {
+              0: '#0D1117',   // fondo
+              1: '#161B22',   // tarjetas secundarias
+              2: '#1C2430',   // bloque principal
+              3: '#222B38',   // hover
+            },
           }),
     },
 
@@ -55,15 +74,69 @@ export const getTheme = (mode) =>
 
     shape: { borderRadius: 14 },
 
+    // Lenguaje de movimiento (src/theme/motion.js) mapeado a los
+    // nombres de MUI, para que sus componentes lo hereden.
+    transitions: {
+      duration: {
+        shortest:       duration.press,
+        shorter:        duration.fast,
+        short:          duration.fast,
+        standard:       duration.base,
+        complex:        duration.slow,
+        enteringScreen: duration.base,
+        leavingScreen:  duration.fast,
+      },
+      easing: {
+        easeInOut: easing.standard,
+        easeOut:   easing.enter,
+        easeIn:    easing.exit,
+        sharp:     easing.standard,
+      },
+    },
+
+    // Las transiciones de MUI (Grow, Fade, Collapse, diálogos, menús)
+    // se reducen a 0ms si el sistema pide movimiento reducido.
+    motion: { reducedMotion: 'system' },
+
     components: {
+      MuiDialog: {
+        defaultProps: { slots: { transition: DialogTransition } },
+      },
+      // Pulso (opacidad) en vez de onda (desplazamiento)
+      MuiSkeleton: {
+        defaultProps: { animation: 'pulse' },
+        styleOverrides: {
+          root: { [`@media ${REDUCED_MOTION_QUERY}`]: { animation: 'none' } },
+        },
+      },
       MuiButton: {
         styleOverrides: {
-          root: { borderRadius: 12, padding: '10px 20px' },
+          // Escala a 0.97 al presionar: sensación táctil en todo el sistema
+          root: ({ theme }) => ({
+            borderRadius: 12,
+            padding: '10px 20px',
+            transition: `${theme.transitions.create(
+              ['background-color', 'box-shadow', 'border-color', 'color'],
+              { duration: duration.fast },
+            )}, transform ${duration.press}ms ${easing.standard}`,
+            '&:active': { transform: 'scale(0.97)' },
+            [`@media ${REDUCED_MOTION_QUERY}`]: { '&:active': { transform: 'none' } },
+          }),
           // Botón principal: azul vivo, bien visible en ambos modos
-          containedPrimary: {
-            backgroundColor: '#2563EB',
-            '&:hover': { backgroundColor: '#1D4FD7' },
-          },
+          containedPrimary: mode === 'light'
+            ? {
+                backgroundColor: '#2563EB',
+                '&:hover': { backgroundColor: '#1D4FD7' },
+              }
+            : {
+                backgroundColor: '#3B82F6',
+                '&:hover': { backgroundColor: '#2563EB' },
+              },
+          // Sin relleno necesitan más luminosidad para leerse en oscuro
+          ...(mode === 'dark' && {
+            outlinedPrimary: { color: '#60A5FA', borderColor: '#60A5FA' },
+            textPrimary: { color: '#60A5FA' },
+          }),
         },
       },
     },
