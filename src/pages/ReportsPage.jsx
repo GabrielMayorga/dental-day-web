@@ -16,6 +16,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { esES } from '@mui/x-date-pickers/locales';
 import dayjs from 'dayjs';
 import 'dayjs/locale/es';
+import { aHoraLocal } from '../utils/fechas';
 import {
   EventNote, Today, People, PersonOff,
 } from '@mui/icons-material';
@@ -110,9 +111,9 @@ const rangeForPreset = (key) => ({
   ...PRESETS.find((p) => p.key === key).range(),
 });
 
-// Hora LOCAL, sin toISOString(): el backend espera hora de pared
-// (scheduled_at es TIMESTAMP sin zona), no UTC.
-const toLocalParam = (date) => (date ? date.format('YYYY-MM-DDTHH:mm:ss') : null);
+// Hora de pared, sin zona: el backend espera la hora local de la
+// clínica (scheduled_at es TIMESTAMP sin zona), no UTC.
+const toLocalParam = (date) => (date ? aHoraLocal(date.toDate()) : null);
 
 // "1 — 31 de octubre de 2026", "1 de agosto — 31 de octubre de 2026",
 // "1 de diciembre de 2025 — 31 de enero de 2026", etc.

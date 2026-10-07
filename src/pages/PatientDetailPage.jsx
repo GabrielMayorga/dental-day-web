@@ -21,6 +21,7 @@ import { getPatient } from '../api/patients';
 import { getPatientRecords, createPatientRecord } from '../api/clinicalRecords';
 import { getDentists } from '../api/staff';
 import { DetailSkeleton, CardListSkeleton } from '../components/Skeletons';
+import { formatFecha, formatFechaHora, parseInstante } from '../utils/fechas';
 
 // ── Mapas de etiquetas ────────────────────────────────────────
 const GENDER_LABEL = {
@@ -28,22 +29,6 @@ const GENDER_LABEL = {
   female:            'Femenino',
   other:             'Otro',
   prefer_not_to_say: 'Prefiero no decir',
-};
-
-// ── Helpers de formato ────────────────────────────────────────
-const formatDate = (iso) => {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('es-MX', {
-    year: 'numeric', month: 'long', day: 'numeric',
-  });
-};
-
-const formatDateTime = (iso) => {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleString('es-MX', {
-    year: 'numeric', month: 'short', day: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  });
 };
 
 // ── Estado vacío del formulario de registro ───────────────────
@@ -149,7 +134,7 @@ const PatientDetailPage = () => {
       const data = await getPatientRecords(id);
       // De más reciente a más antiguo
       const sorted = [...(data ?? [])].sort(
-        (a, b) => new Date(b.created_at) - new Date(a.created_at)
+        (a, b) => parseInstante(b.created_at) - parseInstante(a.created_at)
       );
       setRecords(sorted);
     } finally {
@@ -282,7 +267,7 @@ const PatientDetailPage = () => {
         >
           <DataRow icon={Phone}        label="Teléfono"            value={patient.phone} />
           <DataRow icon={LocationCity} label="Ciudad"              value={patient.city} />
-          <DataRow icon={Cake}         label="Fecha de nacimiento" value={formatDate(patient.birth_date)} />
+          <DataRow icon={Cake}         label="Fecha de nacimiento" value={formatFecha(patient.birth_date)} />
           <DataRow icon={Person}       label="Género"              value={GENDER_LABEL[patient.gender] || patient.gender} />
           <DataRow icon={Bloodtype}    label="Tipo de sangre"      value={patient.blood_type} />
           <DataRow icon={WarningAmber} label="Alergias"            value={patient.allergies} />
@@ -397,7 +382,7 @@ const PatientDetailPage = () => {
                   }}
                 >
                   <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                    {formatDateTime(rec.created_at)}
+                    {formatFechaHora(parseInstante(rec.created_at))}
                   </Typography>
                   <Chip
                     label={rec.staff_name || 'Sin asignar'}

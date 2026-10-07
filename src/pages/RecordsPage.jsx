@@ -18,6 +18,7 @@ import { getRecentRecords } from '../api/clinicalRecords';
 import { useColorMode } from '../context/ThemeContext';
 import AnimatedList from '../components/AnimatedList';
 import { TableRowsSkeleton } from '../components/Skeletons';
+import { formatFecha, parseInstante } from '../utils/fechas';
 
 // ── Longitud máxima antes de truncar textos largos ───────────
 const MAX_TEXT_LENGTH = 60;
@@ -28,15 +29,6 @@ const truncate = (text, max = MAX_TEXT_LENGTH) => {
   return text.length > max ? `${text.slice(0, max).trimEnd()}…` : text;
 };
 
-// Formatea un ISO a fecha legible en español: "28 jun 2026"
-const formatDate = (iso) => {
-  if (!iso) return '—';
-  return new Intl.DateTimeFormat('es', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  }).format(new Date(iso));
-};
 
 // ── Estilo compartido para las celdas de encabezado ──────────
 const HEADER_CELL_SX = {
@@ -231,7 +223,7 @@ const RecordsPage = () => {
 
                         {/* Fecha formateada */}
                         <TableCell sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>
-                          {formatDate(record.created_at)}
+                          {formatFecha(parseInstante(record.created_at), { day: 'numeric', month: 'short', year: 'numeric' })}
                         </TableCell>
                       </TableRow>
                     ))}

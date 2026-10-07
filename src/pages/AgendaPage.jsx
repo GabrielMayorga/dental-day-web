@@ -24,32 +24,16 @@ import { useColorMode } from '../context/ThemeContext';
 import '../styles/calendar.css';
 import { translateStatus } from '../utils/appointmentStatus';
 import { CalendarSkeleton } from '../components/Skeletons';
+import { aHoraLocal, sumarMinutos, formatFecha, formatHora } from '../utils/fechas';
 
 // ── Helpers ──────────────────────────────────────────────────
-
-// Suma minutos a un string ISO y devuelve otro string ISO
-// Formatea en hora LOCAL de la clínica, sin convertir a UTC.
-// scheduled_at es TIMESTAMP sin zona: guarda hora de pared, no un
-// instante universal. toISOString() la desplazaría segun la zona del
-// navegador o del servidor, y las citas aparecerian corridas.
-const aHoraLocal = (date) => {
-  const p = (n) => String(n).padStart(2, '0');
-  return `${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())}`
-       + `T${p(date.getHours())}:${p(date.getMinutes())}:${p(date.getSeconds())}`;
-};
-
-const addMinutes = (isoString, minutes) => {
-  const date = new Date(isoString);
-  date.setMinutes(date.getMinutes() + minutes);
-  return aHoraLocal(date);
-};
 
 // Transforma una cita del backend al formato que espera FullCalendar
 const toCalendarEvent = (cita) => ({
   id: String(cita.id),
   title: `${cita.patient_name} — ${cita.reason || translateStatus(cita.status_name)}`,
   start: cita.scheduled_at,
-  end: addMinutes(cita.scheduled_at, cita.duration_minutes),
+  end: sumarMinutos(cita.scheduled_at, cita.duration_minutes),
   backgroundColor: cita.status_color,
   borderColor: cita.status_color,
   textColor: '#ffffff',
@@ -66,23 +50,19 @@ const toCalendarEvent = (cita) => ({
   },
 });
 
-// Convierte el dateStr de FullCalendar al formato del input datetime-local
-// Ejemplo: "2026-06-25T11:00:00" → "2026-06-25T11:00"
-const toDateTimeLocal = (isoStr) => (isoStr ? isoStr.substring(0, 16) : '');
+// Convierte el Date de FullCalendar al formato del input datetime-local
+// Ejemplo: 25 jun 11:00 → "2026-06-25T11:00". Se usa el Date y no el
+// dateStr, porque con timeZone 'local' el dateStr trae desplazamiento.
+// En la vista de mes (día completo) se propone la hora de apertura.
+const toDateTimeLocal = (date, allDay = false) => {
+  if (!date) return '';
+  const local = aHoraLocal(date);
+  return allDay ? `${local.slice(0, 10)}T08:00` : local.slice(0, 16);
+};
 
 // Convierte el valor del input datetime-local al ISO que espera el backend
 // Ejemplo: "2026-06-25T11:00" → "2026-06-25T11:00:00"
 const toScheduledAt = (dtLocal) => (dtLocal ? `${dtLocal}:00` : '');
-
-// Formatea un ISO a fecha legible en español: "miércoles, 25 de junio de 2026"
-const formatDateES = (isoStr) =>
-  new Date(isoStr).toLocaleDateString('es-ES', {
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-  });
-
-// Formatea un ISO a hora en formato 24 h: "14:30"
-const formatTimeES = (isoStr) =>
-  new Date(isoStr).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false });
 
 // ── Localización en español ───────────────────────────────────
 // FullCalendar no incluye locales en el paquete base; se
@@ -241,8 +221,8 @@ export default function AgendaPage() {
   // ── Handlers del calendario ────────────────────────────────
 
   // Abre el diálogo prellenando la fecha/hora del hueco indicado
-  const openDialog = useCallback((dateStr) => {
-    setForm({ ...FORM_EMPTY, scheduled_at: toDateTimeLocal(dateStr) });
+  const openDialog = useCallback((date, allDay) => {
+    setForm({ ...FORM_EMPTY, scheduled_at: toDateTimeLocal(date, allDay) });
     setFormError('');
     setSelectedPatient(null);
     setPatientInput('');
@@ -253,12 +233,12 @@ export default function AgendaPage() {
 
   // Clic simple en un slot vacío
   const handleDateClick = useCallback((info) => {
-    openDialog(info.dateStr);
+    openDialog(info.date, info.allDay);
   }, [openDialog]);
 
   // Arrastre para seleccionar un rango; usamos el inicio del rango
   const handleSelect = useCallback((info) => {
-    openDialog(info.startStr);
+    openDialog(info.start, info.allDay);
     // Quita el resaltado de selección del calendario
     calendarRef.current?.getApi().unselect();
   }, [openDialog]);
@@ -425,6 +405,9 @@ export default function AgendaPage() {
             key={isMobile ? 'cal-mobile' : 'cal-desktop'}
             ref={calendarRef}
             plugins={[timeGridPlugin, dayGridPlugin, interactionPlugin]}
+            // Explícito: las citas llegan como hora de pared sin zona y
+            // se pintan tal cual en la hora local del navegador.
+            timeZone="local"
             initialView={isMobile ? 'timeGridDay' : 'timeGridWeek'}
             headerToolbar={{
               left: 'prev,next today',
@@ -479,7 +462,7 @@ export default function AgendaPage() {
                     Fecha y hora
                   </Typography>
                   <Typography variant="body1" sx={{ color: 'text.primary', fontWeight: 500 }}>
-                    {formatDateES(selectedEvent.startStr)} · {formatTimeES(selectedEvent.startStr)}
+                    {formatFecha(selectedEvent.start, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} · {formatHora(selectedEvent.start)}
                   </Typography>
                 </Box>
 

@@ -19,6 +19,7 @@ import { getInvoices, getInvoice, createInvoice, changeInvoiceStatus } from '../
 import { getPatients } from '../api/patients';
 import { getTreatments } from '../api/treatments';
 import { CardListSkeleton, TableRowsSkeleton } from '../components/Skeletons';
+import { formatFecha, parseInstante } from '../utils/fechas';
 
 // ── Traducción y color de los estados de factura ─────────────
 const STATUS_LABELS = {
@@ -50,14 +51,6 @@ const numberFormatter = new Intl.NumberFormat('es-NI', {
   maximumFractionDigits: 2,
 });
 const formatCurrency = (value) => `C$ ${numberFormatter.format(Number(value) || 0)}`;
-
-// Fecha legible en español: "25 de junio de 2026"
-const formatDateES = (iso) => {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('es-ES', {
-    day: 'numeric', month: 'long', year: 'numeric',
-  });
-};
 
 // ── Estilo compartido para las celdas de encabezado de tabla ──
 const HEADER_CELL_SX = {
@@ -422,7 +415,7 @@ const InvoicesPage = () => {
               </Box>
 
               <Typography sx={{ color: 'text.secondary', fontSize: 12.5, mt: 0.5 }}>
-                {formatDateES(inv.issued_at)}
+                {formatFecha(parseInstante(inv.issued_at))}
               </Typography>
 
               <Typography sx={{ color: 'text.primary', fontWeight: 700, fontSize: 17, mt: 0.75 }}>
@@ -489,7 +482,7 @@ const InvoicesPage = () => {
                     sx={{ '&:last-child td': { border: 0 }, cursor: 'pointer' }}
                   >
                     <TableCell sx={{ color: 'text.primary', fontWeight: 500 }}>{inv.patient_name}</TableCell>
-                    <TableCell sx={{ color: 'text.secondary' }}>{formatDateES(inv.issued_at)}</TableCell>
+                    <TableCell sx={{ color: 'text.secondary' }}>{formatFecha(parseInstante(inv.issued_at))}</TableCell>
                     <TableCell sx={{ color: 'text.primary', fontWeight: 600 }}>
                       {formatCurrency(inv.final_amount)}
                     </TableCell>
@@ -557,7 +550,7 @@ const InvoicesPage = () => {
               {/* Fecha y estado */}
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                  {formatDateES(detailInvoice.issued_at)}
+                  {formatFecha(parseInstante(detailInvoice.issued_at))}
                 </Typography>
                 <StatusChip status={detailInvoice.status} />
               </Box>

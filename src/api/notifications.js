@@ -5,7 +5,8 @@
 import api from './client';
 
 // Obtiene las citas próximas (el backend filtra por rol y rango).
-export const getNotifications = async () => {
-  const response = await api.get('/notifications');
+// signal (opcional) permite cancelar la petición (AbortController).
+export const getNotifications = async ({ signal } = {}) => {
+  const response = await api.get('/notifications', { signal });
   return response.data.data;
 };
