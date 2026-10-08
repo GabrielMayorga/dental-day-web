@@ -1,8 +1,8 @@
 // src/config/clinica.js
 // ============================================================
 // Datos de la clínica que se muestran en el login y en la
-// pantalla de inicio. Los valores entre [corchetes] son
-// marcadores pendientes: hay que reemplazarlos por los reales.
+// pantalla de inicio. `horario` alimenta además la cuadrícula
+// de disponibilidad al crear citas (src/utils/disponibilidad.js).
 // ============================================================
 
 export const CLINICA = {
@@ -22,8 +22,12 @@ export const CLINICA = {
   direccion: 'De veterinaria Estrada, 1/2 al Norte. Contiguo a ferretería San Isidro',
   ciudad: 'Rama, RACCS, Nicaragua',
 
-  horario: [
-    { dias: '[Lunes a viernes]', horas: '[8:00 – 17:00]' },
-    { dias: '[Sábado]',          horas: '[8:00 – 12:00]' },
-  ],
+  // Horario de atención estructurado (hora de pared de la clínica)
+  horario: {
+    dias: [1, 2, 3, 4, 5, 6],   // lunes a sábado (0 = domingo)
+    apertura: '08:00',
+    cierre: '17:00',
+    intervaloMinutos: 30,
+  },
+  horarioTexto: 'Lunes a sábado, 8:00 a 17:00',
 };

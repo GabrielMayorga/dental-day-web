@@ -5,9 +5,10 @@
 // ============================================================
 import api from './client';
 
-// Listar pacientes (con búsqueda opcional)
-export const getPatients = async (search = '') => {
-  const response = await api.get('/patients', { params: { search } });
+// Listar pacientes (con búsqueda opcional por nombre y apellido).
+// signal (opcional) permite cancelar la petición (AbortController).
+export const getPatients = async (search = '', { signal } = {}) => {
+  const response = await api.get('/patients', { params: { search }, signal });
   return response.data.data;
 };
 
