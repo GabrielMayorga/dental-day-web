@@ -620,11 +620,7 @@ const HomePage = () => {
         </Box>
       </Box>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
-        {infoRow(AccessTime, CLINICA.horario.map((h) => (
-          <Box key={h.dias}>
-            {h.dias}: <Box component="span" sx={{ color: 'text.secondary' }}>{h.horas}</Box>
-          </Box>
-        )))}
+        {infoRow(AccessTime, CLINICA.horarioTexto)}
         {infoRow(Phone, (
           <Link
             href={CLINICA.telefono.href}
