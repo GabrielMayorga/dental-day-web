@@ -4,7 +4,7 @@
 // agrupadas en "Hoy", "Mañana" y "Esta semana". Vive dentro
 // del Layout (sin barra lateral ni cabecera propias).
 // ============================================================
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
 import {
   Box, Typography, Paper, Chip, Divider, Alert, Skeleton, useTheme,
 } from '@mui/material';
@@ -13,6 +13,8 @@ import { getNotifications } from '../api/notifications';
 import { translateStatus } from '../utils/appointmentStatus';
 import AnimatedList from '../components/AnimatedList';
 import { ListRowsSkeleton } from '../components/Skeletons';
+import { formatHora } from '../utils/fechas';
+import useAutoRefresh from '../hooks/useAutoRefresh';
 
 // ── Secciones y su orden de aparición ───────────────────────
 const GROUPS = [
@@ -21,40 +23,14 @@ const GROUPS = [
   { key: 'semana', label: 'Esta semana' },
 ];
 
-// Formatea un ISO a hora de 12 h con AM/PM: "4:00 PM"
-const formatHour = (iso) => {
-  const date = new Date(iso);
-  let hours = date.getHours();
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const period = hours >= 12 ? 'PM' : 'AM';
-  hours = hours % 12 || 12;
-  return `${hours}:${minutes} ${period}`;
-};
-
 const NotificationsPage = () => {
-  const [data, setData]       = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState('');
-
   // Niveles de vidrio centralizados en el tema (theme.glass)
   const { glass } = useTheme();
 
-  const fetchNotifications = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const result = await getNotifications();
-      setData(result);
-    } catch {
-      setError('No se pudieron cargar las notificaciones. Intenta de nuevo más tarde.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchNotifications();
-  }, [fetchNotifications]);
+  // Se refresca sola mientras la pestaña está a la vista. Si un
+  // refresco falla se conservan los datos y se avisa con discreción.
+  const fetchNotifications = useCallback((signal) => getNotifications({ signal }), []);
+  const { data, error, loading, refreshing } = useAutoRefresh(fetchNotifications);
 
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
@@ -89,15 +65,22 @@ const NotificationsPage = () => {
         </Box>
       )}
 
-      {/* Estado: error */}
-      {!loading && error && (
+      {/* Estado: error en la primera carga */}
+      {!loading && error && !data && (
         <Alert severity="error" sx={{ borderRadius: '12px' }}>
-          {error}
+          No se pudieron cargar las notificaciones. Intenta de nuevo más tarde.
         </Alert>
       )}
 
-      {!loading && !error && (
+      {data && (
         <>
+          {/* Falló un refresco: se mantienen los últimos datos */}
+          {error && (
+            <Typography sx={{ fontSize: 12, color: 'warning.main', mb: 1 }}>
+              No se pudo actualizar; se muestran los últimos datos
+            </Typography>
+          )}
+
           {/* Contador de citas próximas */}
           <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2.5 }}>
             Tienes <strong>{total}</strong> {total === 1 ? 'cita próxima' : 'citas próximas'}
@@ -125,7 +108,7 @@ const NotificationsPage = () => {
           )}
 
           {/* Secciones agrupadas: Hoy / Mañana / Esta semana */}
-          <AnimatedList>
+          <AnimatedList refreshing={refreshing}>
           {GROUPS.map(({ key, label }) => {
             const groupItems = items.filter((item) => item.group === key);
             if (groupItems.length === 0) return null;
@@ -182,7 +165,7 @@ const NotificationsPage = () => {
                               variant="body1"
                               sx={{ color: 'text.primary', fontWeight: 600, fontSize: { xs: 14, sm: 16 } }}
                             >
-                              {formatHour(item.scheduled_at)}
+                              {formatHora(item.scheduled_at, { hour12: true })}
                             </Typography>
                             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                               {item.duration_minutes} min

@@ -4,9 +4,10 @@
 // ============================================================
 import api from './client';
 
-// Listar citas con filtros opcionales (from, to, staffId)
-export const getAppointments = async (params = {}) => {
-  const response = await api.get('/appointments', { params });
+// Listar citas con filtros opcionales (from, to, staffId).
+// signal (opcional) permite cancelar la petición (AbortController).
+export const getAppointments = async (params = {}, { signal } = {}) => {
+  const response = await api.get('/appointments', { params, signal });
   return response.data.data;
 };
 
