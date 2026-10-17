@@ -8,14 +8,15 @@ import { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   Box, Drawer, AppBar, Toolbar, Typography, IconButton, Avatar,
-  Menu, MenuItem, Tooltip, Fade, useMediaQuery, useTheme,
+  Menu, MenuItem, Tooltip, Fade, Snackbar, Alert, useMediaQuery, useTheme,
 } from '@mui/material';
-import { Logout, Menu as MenuIcon } from '@mui/icons-material';
+import { Logout, LockReset, Menu as MenuIcon } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { useColorMode } from '../context/ThemeContext';
 import { navItems } from '../config/navigation';
 import ThemeToggle from './ThemeToggle';
 import DentalDayMark from './DentalDayMark';
+import CambiarContrasenaDialog from './CambiarContrasenaDialog';
 import { duration, easing } from '../theme/motion';
 
 const DRAWER_WIDTH = 92;
@@ -28,6 +29,8 @@ const Layout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [anchorEl, setAnchorEl] = useState(null);
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [passwordChanged, setPasswordChanged] = useState(false);
 
   // Detecta pantallas pequeñas (menor a 'md') para alternar entre drawer permanente y temporal
   const theme = useTheme();
@@ -160,12 +163,44 @@ const Layout = () => {
             </Tooltip>
             <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
               <MenuItem disabled sx={{ fontSize: 13 }}>{user?.role}</MenuItem>
+              <MenuItem
+                onClick={() => {
+                  setAnchorEl(null);
+                  setPasswordOpen(true);
+                }}
+              >
+                <LockReset fontSize="small" sx={{ mr: 1 }} /> Cambiar contraseña
+              </MenuItem>
               <MenuItem onClick={logout}>
                 <Logout fontSize="small" sx={{ mr: 1 }} /> Cerrar sesión
               </MenuItem>
             </Menu>
           </Toolbar>
         </AppBar>
+
+        <CambiarContrasenaDialog
+          open={passwordOpen}
+          onClose={() => setPasswordOpen(false)}
+          onSuccess={() => {
+            setPasswordOpen(false);
+            setPasswordChanged(true);
+          }}
+        />
+        <Snackbar
+          open={passwordChanged}
+          autoHideDuration={6000}
+          onClose={() => setPasswordChanged(false)}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        >
+          <Alert
+            severity="success"
+            variant="filled"
+            onClose={() => setPasswordChanged(false)}
+            sx={{ borderRadius: '12px' }}
+          >
+            Contraseña actualizada. Se cerraron tus otras sesiones
+          </Alert>
+        </Snackbar>
 
         <Box sx={{ flexGrow: 1, p: { xs: 1.5, md: 3 } }}>
           {/* Fade al cambiar de ruta: la key remonta solo el contenido;

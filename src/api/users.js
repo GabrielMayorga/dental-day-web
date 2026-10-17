@@ -30,3 +30,10 @@ export const changeUserStatus = async (id, is_active) => {
   const response = await api.patch(`/users/${id}/status`, { is_active });
   return response.data.data;
 };
+
+// Restablece la contraseña de otro usuario. El servidor genera la
+// temporal y la devuelve UNA sola vez: { temporary_password }
+export const resetUserPassword = async (id) => {
+  const response = await api.post(`/users/${id}/reset-password`);
+  return response.data.data;
+};

@@ -7,7 +7,7 @@
 //   compacto de contacto; la columna izquierda no se renderiza
 //   (competiría con la única acción posible de la pantalla).
 // ============================================================
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box, TextField, Button, Typography, Alert, CircularProgress, InputAdornment,
@@ -20,6 +20,8 @@ import GlassCard from '../components/GlassCard';
 import ThemeToggle from '../components/ThemeToggle';
 import DentalDayMark from '../components/DentalDayMark';
 import { CLINICA } from '../config/clinica';
+import { PASSWORD_CHANGE_PATH } from '../api/client';
+import { getLogoutReason, clearLogoutReason, LOGOUT_REASONS } from '../api/tokens';
 import { duration, easing } from '../theme/motion';
 import useReducedMotion from '../hooks/useReducedMotion';
 
@@ -27,6 +29,8 @@ import useReducedMotion from '../hooks/useReducedMotion';
 const DESFASE_MS = 120;
 
 const ARIA_TELEFONO = `Llamar a ${CLINICA.nombre} al ${CLINICA.telefono.visible}`;
+const AVISO_SESION_REVOCADA = 'Tu sesión se cerró porque tu contraseña cambió. Ingresa de nuevo';
+
 const ARIA_WHATSAPP = `Escribir por WhatsApp a ${CLINICA.nombre} al ${CLINICA.whatsapp.visible} (se abre en una pestaña nueva)`;
 
 const LoginPage = () => {
@@ -34,6 +38,13 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  // Motivo del último cierre forzado (lo deja el interceptor de axios).
+  // Se lee en el render y se borra en un efecto: así el aviso se
+  // muestra una vez y no reaparece al recargar.
+  const [aviso] = useState(() =>
+    getLogoutReason() === LOGOUT_REASONS.SESSION_REVOKED ? AVISO_SESION_REVOCADA : ''
+  );
+  useEffect(() => clearLogoutReason(), []);
 
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -47,8 +58,8 @@ const LoginPage = () => {
     setError('');
     setLoading(true);
     try {
-      await login(email, password);
-      navigate('/');
+      const user = await login(email, password);
+      navigate(user.must_change_password ? PASSWORD_CHANGE_PATH : '/', { replace: true });
     } catch (err) {
       setError(err.response?.data?.error || 'Error al iniciar sesión');
     } finally {
@@ -84,6 +95,7 @@ const LoginPage = () => {
         </Typography>
       </Box>
 
+      {aviso && !error && <Alert severity="info" sx={{ mb: 2, borderRadius: '12px' }}>{aviso}</Alert>}
       {error && <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>{error}</Alert>}
 
       <form onSubmit={handleSubmit}>

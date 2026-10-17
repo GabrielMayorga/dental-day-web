@@ -18,6 +18,7 @@ import ReportsPage from './pages/ReportsPage';
 import NotificationsPage from './pages/NotificationsPage';
 import RecordsPage from './pages/RecordsPage';
 import InvoicesPage from './pages/InvoicesPage';
+import CrearContrasenaPage from './pages/CrearContrasenaPage';
 
 function App() {
   return (
@@ -26,6 +27,16 @@ function App() {
         <Routes>
           {/* Ruta pública (sin layout) */}
           <Route path="/login" element={<LoginPage />} />
+
+          {/* Cambio de contraseña obligatorio (sin layout: sin navegación) */}
+          <Route
+            path="/crear-contrasena"
+            element={
+              <ProtectedRoute passwordChange>
+                <CrearContrasenaPage />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Rutas privadas: todas dentro del Layout */}
           <Route

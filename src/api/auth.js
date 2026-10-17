@@ -22,3 +22,13 @@ export const getMe = async () => {
   const response = await api.get('/auth/me');
   return response.data.user;
 };
+
+/**
+ * Cambia la contraseña del usuario autenticado.
+ * El servidor cierra sus otras sesiones y devuelve tokens nuevos.
+ * @returns {Promise<object>} { accessToken, refreshToken }
+ */
+export const changeOwnPassword = async (current_password, new_password) => {
+  const response = await api.patch('/auth/me/password', { current_password, new_password });
+  return response.data.data;
+};

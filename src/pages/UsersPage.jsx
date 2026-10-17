@@ -1,7 +1,8 @@
 // src/pages/UsersPage.jsx
 // ============================================================
 // Gestión de usuarios del sistema. Solo accesible para admins.
-// Permite crear usuarios, cambiar su rol y activar/desactivar.
+// Permite crear usuarios, cambiar su rol, activar/desactivar y
+// restablecer su contraseña.
 // Vive dentro del Layout (sidebar + header ya incluidos).
 // ============================================================
 import { useState, useEffect, useCallback } from 'react';
@@ -12,11 +13,12 @@ import {
   Table, TableHead, TableBody, TableRow, TableCell, TableContainer,
   CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions,
   MenuItem, TextField, Alert, Tooltip, FormControl, Select,
-  Snackbar, useTheme, useMediaQuery,
+  Snackbar, IconButton, useTheme, useMediaQuery,
 } from '@mui/material';
-import { PersonAdd } from '@mui/icons-material';
+import { PersonAdd, LockReset } from '@mui/icons-material';
 import { getUsers, createUser, changeUserRole, changeUserStatus } from '../api/users';
 import AnimatedList from '../components/AnimatedList';
+import RestablecerContrasenaDialog from '../components/RestablecerContrasenaDialog';
 import { CardListSkeleton, TableRowsSkeleton } from '../components/Skeletons';
 
 // ── Catálogo de roles ────────────────────────────────────────
@@ -86,6 +88,9 @@ const UsersPage = () => {
   // roleConfirm = { user, newRole } mientras hay un cambio pendiente de confirmar
   const [roleConfirm, setRoleConfirm] = useState(null);
   const [roleSaving,  setRoleSaving]  = useState(false);
+
+  // ── Restablecer contraseña: usuario elegido (null = cerrado) ─
+  const [resetTarget, setResetTarget] = useState(null);
 
   // ── Snackbar de errores del backend ─────────────────────────
   const [snackbar, setSnackbar] = useState({ open: false, message: '' });
@@ -250,6 +255,48 @@ const UsersPage = () => {
     );
   };
 
+  // ── Restablecer contraseña reutilizable (tabla y tarjetas) ──
+  // Deshabilitado en la propia fila (el admin usa su perfil, y el
+  // servidor lo rechaza igual) y en usuarios inactivos.
+  const renderResetControl = (u) => {
+    const isSelf   = u.id === currentUser?.id;
+    const disabled = isSelf || !u.is_active;
+    const hint = isSelf
+      ? 'Usa Cambiar contraseña en tu perfil'
+      : !u.is_active
+        ? 'Activa el usuario para restablecer su contraseña'
+        : 'Restablecer contraseña';
+
+    // Móvil: botón con texto (el tooltip no se ve sin cursor)
+    const control = isMobile ? (
+      <Button
+        size="small"
+        startIcon={<LockReset fontSize="small" />}
+        disabled={disabled}
+        onClick={() => setResetTarget(u)}
+        sx={{ borderRadius: '10px', fontSize: 13, px: 1.25, py: 0.5 }}
+      >
+        Restablecer contraseña
+      </Button>
+    ) : (
+      <IconButton
+        size="small"
+        disabled={disabled}
+        onClick={() => setResetTarget(u)}
+        aria-label={`Restablecer contraseña de ${u.full_name || u.email}`}
+      >
+        <LockReset fontSize="small" />
+      </IconButton>
+    );
+
+    return (
+      <Tooltip title={hint}>
+        {/* span necesario para que el Tooltip funcione sobre un control deshabilitado */}
+        <Box component="span" sx={{ display: 'inline-flex' }}>{control}</Box>
+      </Tooltip>
+    );
+  };
+
   // ── Manejo del formulario ────────────────────────────────────
   const handleFieldChange = (e) => {
     const { name, value } = e.target;
@@ -407,6 +454,11 @@ const UsersPage = () => {
                 </Box>
                 {renderStatusControl(u)}
               </Box>
+
+              {/* Restablecer contraseña */}
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+                {renderResetControl(u)}
+              </Box>
             </Paper>
           ))}
         </AnimatedList>
@@ -494,10 +546,11 @@ const UsersPage = () => {
                       />
                     </TableCell>
 
-                    {/* Acciones: interruptor de estado */}
+                    {/* Acciones: interruptor de estado + restablecer contraseña */}
                     <TableCell sx={{ py: 0.5 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 1 }}>
                         {renderStatusControl(u)}
+                        {renderResetControl(u)}
                       </Box>
                     </TableCell>
                   </TableRow>
@@ -723,6 +776,9 @@ const UsersPage = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* ── Diálogo: restablecer contraseña ─────────────────────── */}
+      <RestablecerContrasenaDialog user={resetTarget} onClose={() => setResetTarget(null)} />
 
       {/* ── Snackbar: errores del backend ───────────────────────── */}
       <Snackbar
