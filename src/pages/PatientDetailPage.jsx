@@ -316,9 +316,9 @@ const PatientDetailPage = () => {
           <DataRow icon={Phone}        label="Teléfono"            value={patient.phone} />
           <DataRow icon={LocationCity} label="Ciudad"              value={patient.city} />
           <DataRow icon={Cake}         label="Fecha de nacimiento" value={formatFecha(patient.birth_date)} />
-          <DataRow icon={Person}       label="Género"              value={GENDER_LABEL[patient.gender] || patient.gender} />
           {showMedical && (
             <>
+              <DataRow icon={Person}       label="Género"         value={GENDER_LABEL[patient.gender] || patient.gender} />
               <DataRow icon={Bloodtype}    label="Tipo de sangre" value={patient.blood_type} />
               <DataRow icon={WarningAmber} label="Alergias"       value={patient.allergies} />
             </>

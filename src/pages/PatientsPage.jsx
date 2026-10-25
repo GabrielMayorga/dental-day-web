@@ -32,8 +32,9 @@ const GENDER_OPTIONS = [
 
 const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
-// Campos médicos: recepción no los ve ni los envía
-const MEDICAL_FIELDS = ['blood_type', 'allergies'];
+// Campos médicos: recepción no los ve ni los envía. El género va
+// aquí porque la API tampoco lo incluye en los datos de contacto.
+const MEDICAL_FIELDS = ['gender', 'blood_type', 'allergies'];
 
 // ── Estado inicial del formulario ────────────────────────────
 const EMPTY_FORM = {
@@ -585,19 +586,21 @@ const PatientsPage = () => {
               size="small"
               InputLabelProps={{ shrink: true }}
             />
-            <TextField
-              select
-              label="Género"
-              name="gender"
-              value={form.gender}
-              onChange={handleFieldChange}
-              fullWidth
-              size="small"
-            >
-              {GENDER_OPTIONS.map((opt) => (
-                <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
-              ))}
-            </TextField>
+            {showMedical && (
+              <TextField
+                select
+                label="Género"
+                name="gender"
+                value={form.gender}
+                onChange={handleFieldChange}
+                fullWidth
+                size="small"
+              >
+                {GENDER_OPTIONS.map((opt) => (
+                  <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                ))}
+              </TextField>
+            )}
           </Box>
 
           {/* Teléfono y ciudad: lado a lado en escritorio, apilados en móvil */}
