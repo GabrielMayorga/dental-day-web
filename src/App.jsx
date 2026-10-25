@@ -19,6 +19,7 @@ import ReportsPage from './pages/ReportsPage';
 import NotificationsPage from './pages/NotificationsPage';
 import RecordsPage from './pages/RecordsPage';
 import InvoicesPage from './pages/InvoicesPage';
+import AuditPage from './pages/AuditPage';
 import { navItems } from './config/navigation';
 
 // Roles permitidos para una ruta, tomados del menú (src/config/navigation.js)
@@ -55,6 +56,7 @@ function App() {
             <Route path="/notificaciones" element={<ProtectedRoute roles={rolesFor('/notificaciones')}><NotificationsPage /></ProtectedRoute>} />
             <Route path="/reportes" element={<ProtectedRoute roles={rolesFor('/reportes')}><ReportsPage /></ProtectedRoute>} />
             <Route path="/usuarios" element={<ProtectedRoute roles={rolesFor('/usuarios')}><UsersPage /></ProtectedRoute>} />
+            <Route path="/auditoria" element={<ProtectedRoute roles={rolesFor('/auditoria')}><AuditPage /></ProtectedRoute>} />
           </Route>
         </Routes>
       </BrowserRouter>
