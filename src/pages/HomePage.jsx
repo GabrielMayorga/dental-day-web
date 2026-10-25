@@ -23,6 +23,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { getAppointments, changeAppointmentStatus } from '../api/appointments';
+import { isForbidden } from '../api/client';
 import { getNotifications } from '../api/notifications';
 import { getDashboard } from '../api/reports';
 import { translateStatus, STATUS_COLORS } from '../utils/appointmentStatus';
@@ -307,7 +308,10 @@ const HomePage = () => {
       // ...y luego se recarga todo para que los contadores cuadren
       refreshAll();
     } catch (err) {
-      setRowError({ id: cita.id, msg: err.response?.data?.message || 'No se pudo cambiar el estado.' });
+      // Un 403 ya lo muestra ForbiddenNotice con el mensaje del servidor
+      if (!isForbidden(err)) {
+        setRowError({ id: cita.id, msg: err.response?.data?.error || 'No se pudo cambiar el estado.' });
+      }
     } finally {
       setChangingId(null);
     }
@@ -386,8 +390,12 @@ const HomePage = () => {
     }),
   });
 
-  // `next` es la acción que ofrece la fila (o null si no ofrece ninguna)
-  const citaRow = (cita, next) => {
+  // `accion` es la que ofrecería la fila según su estado (o null).
+  // Si el backend dice que no puede gestionarla, la fila es de solo
+  // lectura: sin acción y con el nombre del odontólogo.
+  const citaRow = (cita, accion) => {
+    const soloLectura = cita.puede_gestionar === false;
+    const next = soloLectura ? null : accion;
     const busy = changingId === cita.id;
     return (
       <Box key={cita.id}>
@@ -402,6 +410,7 @@ const HomePage = () => {
             </Typography>
             <Typography noWrap sx={{ fontSize: 13, color: 'text.secondary' }}>
               {cita.reason ? `${cita.reason} · ` : ''}{translateStatus(cita.status_name)}
+              {soloLectura && cita.staff_name ? ` · ${cita.staff_name}` : ''}
             </Typography>
           </Box>
           {next && (

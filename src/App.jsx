@@ -9,6 +9,7 @@ import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import RateLimitNotice from './components/RateLimitNotice';
+import ForbiddenNotice from './components/ForbiddenNotice';
 import LoginPage from './pages/LoginPage';
 import HomePage from './pages/HomePage';
 import PatientsPage from './pages/PatientsPage';
@@ -33,6 +34,7 @@ function App() {
   return (
     <AuthProvider>
       <RateLimitNotice />
+      <ForbiddenNotice />
       <BrowserRouter>
         <Routes>
           {/* Ruta pública (sin layout) */}
