@@ -20,10 +20,15 @@
 //   nunca sobrescribe una nueva.
 // - Si un refresco falla, data se mantiene y error queda con el
 //   fallo: la pantalla decide cómo avisar sin vaciarse.
+// - Ante un 429 (límite de peticiones) el sondeo se pausa hasta
+//   que pase Retry-After (60 s si no viene) y luego se retoma con
+//   un refresco. Sin esto el panel seguiría golpeando al servidor
+//   mientras está limitado.
 // - mutate(updater) cambia data al instante (actualización
 //   optimista); el siguiente refresh trae la verdad del servidor.
 // ============================================================
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { isRateLimited, retryAfterSeconds } from '../api/rateLimit';
 
 const isVisible = () => document.visibilityState === 'visible';
 
@@ -39,6 +44,8 @@ const useAutoRefresh = (fetcher, { intervalMs = 60000 } = {}) => {
   const fetcherRef    = useRef(fetcher);
   const controllerRef = useRef(null);
   const requestIdRef  = useRef(0);
+  const pausedUntilRef = useRef(0);
+  const resumeTimerRef = useRef(null);
 
   useEffect(() => {
     fetcherRef.current = fetcher;
@@ -63,9 +70,20 @@ const useAutoRefresh = (fetcher, { intervalMs = 60000 } = {}) => {
     } catch (error) {
       // Cancelada o superada por otra más nueva: no es un error
       if (controller.signal.aborted || id !== requestIdRef.current) return;
+      if (isRateLimited(error)) {
+        const ms = retryAfterSeconds(error, 60) * 1000;
+        pausedUntilRef.current = Date.now() + ms;
+        clearTimeout(resumeTimerRef.current);
+        resumeTimerRef.current = setTimeout(() => {
+          if (isVisible()) refresh();
+        }, ms);
+      }
       setState((s) => ({ ...s, error, loading: false, refreshing: false }));
     }
   }, []);
+
+  // Al desmontar no debe quedar un reintento programado
+  useEffect(() => () => clearTimeout(resumeTimerRef.current), []);
 
   const mutate = useCallback((updater) => {
     setState((s) => ({ ...s, data: updater(s.data) }));
@@ -79,10 +97,12 @@ const useAutoRefresh = (fetcher, { intervalMs = 60000 } = {}) => {
     return () => controllerRef.current?.abort();
   }, [fetcher, refresh]);
 
-  // Sondeo periódico, solo con la pestaña visible
+  // Sondeo periódico, solo con la pestaña visible y sin pausa por 429
   useEffect(() => {
     if (!fetcher) return undefined;
-    const tick = () => { if (isVisible()) refresh(); };
+    const tick = () => {
+      if (isVisible() && Date.now() >= pausedUntilRef.current) refresh();
+    };
     const timer = setInterval(tick, intervalMs);
     document.addEventListener('visibilitychange', tick);
     return () => {

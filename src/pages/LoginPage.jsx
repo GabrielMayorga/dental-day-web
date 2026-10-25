@@ -7,7 +7,7 @@
 //   compacto de contacto; la columna izquierda no se renderiza
 //   (competiría con la única acción posible de la pantalla).
 // ============================================================
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box, TextField, Button, Typography, Alert, CircularProgress, InputAdornment,
@@ -22,9 +22,20 @@ import DentalDayMark from '../components/DentalDayMark';
 import { CLINICA } from '../config/clinica';
 import { duration, easing } from '../theme/motion';
 import useReducedMotion from '../hooks/useReducedMotion';
+import { isRateLimited, retryAfterSeconds } from '../api/rateLimit';
 
 // Desfase entre la entrada del formulario y la de la columna de marca
 const DESFASE_MS = 120;
+
+// "1 minuto" / "N minutos", redondeando hacia arriba
+const textoMinutos = (segundos) => {
+  const min = Math.max(1, Math.ceil(segundos / 60));
+  return `${min} ${min === 1 ? 'minuto' : 'minutos'}`;
+};
+
+// Cuenta regresiva del botón: m:ss
+const textoReloj = (segundos) =>
+  `${Math.floor(segundos / 60)}:${String(segundos % 60).padStart(2, '0')}`;
 
 const ARIA_TELEFONO = `Llamar a ${CLINICA.nombre} al ${CLINICA.telefono.visible}`;
 const ARIA_WHATSAPP = `Escribir por WhatsApp a ${CLINICA.nombre} al ${CLINICA.whatsapp.visible} (se abre en una pestaña nueva)`;
@@ -34,6 +45,9 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  // Bloqueo por 429: momento (ms) en que se puede volver a intentar
+  const [bloqueadoHasta, setBloqueadoHasta] = useState(0);
+  const [restante, setRestante] = useState(0);
 
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -42,15 +56,41 @@ const LoginPage = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const reduced = useReducedMotion();
 
+  // Cuenta regresiva mientras dure el bloqueo; al terminar se
+  // limpia el aviso y se habilita el botón.
+  useEffect(() => {
+    if (!bloqueadoHasta) return undefined;
+    const tick = () => {
+      const segs = Math.max(0, Math.ceil((bloqueadoHasta - Date.now()) / 1000));
+      setRestante(segs);
+      if (segs === 0) {
+        setBloqueadoHasta(0);
+        setError('');
+      }
+    };
+    tick();
+    const timer = setInterval(tick, 1000);
+    return () => clearInterval(timer);
+  }, [bloqueadoHasta]);
+
+  const bloqueado = restante > 0;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (bloqueado) return;
     setError('');
     setLoading(true);
     try {
       await login(email, password);
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al iniciar sesión');
+      if (isRateLimited(err)) {
+        const segs = retryAfterSeconds(err, 60);
+        setRestante(segs);
+        setBloqueadoHasta(Date.now() + segs * 1000);
+      } else {
+        setError(err.response?.data?.error || 'Error al iniciar sesión');
+      }
     } finally {
       setLoading(false);
     }
@@ -84,7 +124,11 @@ const LoginPage = () => {
         </Typography>
       </Box>
 
-      {error && <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>{error}</Alert>}
+      {bloqueado ? (
+        <Alert severity="warning" sx={{ mb: 2, borderRadius: '12px' }}>
+          Demasiados intentos. Podrás intentarlo de nuevo en {textoMinutos(restante)}.
+        </Alert>
+      ) : error && <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>{error}</Alert>}
 
       <form onSubmit={handleSubmit}>
         <TextField
@@ -98,10 +142,12 @@ const LoginPage = () => {
           slotProps={{ input: { startAdornment: (<InputAdornment position="start"><Lock sx={{ color: 'text.secondary' }} /></InputAdornment>) } }}
         />
         <Button
-          type="submit" fullWidth variant="contained" disabled={loading}
+          type="submit" fullWidth variant="contained" disabled={loading || bloqueado}
           sx={{ mt: 3, py: 1.3, fontSize: '15px' }}
         >
-          {loading ? <CircularProgress size={24} color="inherit" /> : 'Iniciar sesión'}
+          {loading
+            ? <CircularProgress size={24} color="inherit" />
+            : bloqueado ? `Intenta de nuevo en ${textoReloj(restante)}` : 'Iniciar sesión'}
         </Button>
       </form>
 
