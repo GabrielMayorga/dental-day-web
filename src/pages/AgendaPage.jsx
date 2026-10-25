@@ -17,6 +17,7 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { getAppointments, changeAppointmentStatus } from '../api/appointments';
+import { isForbidden } from '../api/client';
 import { getDentists } from '../api/staff';
 import { useColorMode } from '../context/ThemeContext';
 import '../styles/calendar.css';
@@ -48,6 +49,8 @@ const toCalendarEvent = (cita) => ({
     patient_name: cita.patient_name,
     reason: cita.reason,
     duration_minutes: cita.duration_minutes,
+    // Lo decide el backend; aquí no se recalcula la regla
+    soloLectura: cita.puede_gestionar === false,
   },
 });
 
@@ -218,9 +221,12 @@ export default function AgendaPage() {
       handleDetailClose();
       await fetchEvents();
     } catch (err) {
-      setStatusError(
-        err.response?.data?.error || 'Error al cambiar el estado. Inténtalo de nuevo.',
-      );
+      // Un 403 ya lo muestra ForbiddenNotice con el mensaje del servidor
+      if (!isForbidden(err)) {
+        setStatusError(
+          err.response?.data?.error || 'Error al cambiar el estado. Inténtalo de nuevo.',
+        );
+      }
     } finally {
       setStatusChanging(false);
     }
@@ -447,8 +453,13 @@ export default function AgendaPage() {
                 <Box>
                   <Divider sx={{ mb: 1.5 }} />
 
-                  {/* Estados finales: no hay acciones posibles */}
-                  {['completed', 'cancelled', 'no_show'].includes(ep.status_name) ? (
+                  {/* Sin permiso para gestionarla: solo lectura */}
+                  {ep.soloLectura ? (
+                    <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                      Solo lectura: esta cita la gestiona {ep.staffName || 'otro odontólogo'}.
+                    </Typography>
+                  ) : ['completed', 'cancelled', 'no_show'].includes(ep.status_name) ? (
+                    // Estados finales: no hay acciones posibles
                     <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
                       Esta cita está en un estado final.
                     </Typography>
@@ -588,8 +599,9 @@ export default function AgendaPage() {
                 alignItems: { xs: 'stretch', sm: 'center' },
               }}
             >
-              {/* Botón "Reprogramar" — visible solo para citas canceladas o no asistidas */}
-              {['cancelled', 'no_show'].includes(ep.status_name) && (
+              {/* Botón "Reprogramar" — visible solo para citas canceladas o no asistidas
+                  que el usuario puede gestionar */}
+              {!ep.soloLectura && ['cancelled', 'no_show'].includes(ep.status_name) && (
                 <Button
                   onClick={handleReschedule}
                   variant="outlined"

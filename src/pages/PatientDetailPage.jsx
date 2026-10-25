@@ -15,13 +15,14 @@ import {
 import {
   ArrowBack, Phone, LocationCity, Cake, Person,
   Bloodtype, WarningAmber, Lock, AddCircle,
-  LocalHospital, MedicalInformation,
+  LocalHospital, MedicalInformation, Edit, PostAdd,
 } from '@mui/icons-material';
 import { getPatient } from '../api/patients';
-import { getPatientRecords, createPatientRecord } from '../api/clinicalRecords';
+import { getPatientRecords, createPatientRecord, updateRecord } from '../api/clinicalRecords';
 import { getDentists } from '../api/staff';
+import { isForbidden } from '../api/client';
 import { DetailSkeleton, CardListSkeleton } from '../components/Skeletons';
-import { formatFecha, formatFechaHora, parseInstante } from '../utils/fechas';
+import { formatFecha, formatFechaHora, formatHora, parseInstante } from '../utils/fechas';
 
 // ── Mapas de etiquetas ────────────────────────────────────────
 const GENDER_LABEL = {
@@ -39,6 +40,13 @@ const EMPTY_RECORD = {
   treatment_plan: '',
   notes:          '',
 };
+
+// Campos que se pueden modificar al editar un registro existente
+const EDITABLE_FIELDS = ['chief_complaint', 'diagnosis', 'treatment_plan', 'notes'];
+
+// Motivo prellenado de una corrección: "Corrección del registro del 7 de octubre de 2026"
+const motivoCorreccion = (rec) =>
+  `Corrección del registro del ${formatFecha(parseInstante(rec.created_at))}`;
 
 // ── Subcomponente: fila de dato del paciente ──────────────────
 const DataRow = ({ icon: Icon, label, value }) => (
@@ -86,6 +94,11 @@ const PatientDetailPage = () => {
 
   // Solo admin y dentist pueden ver la historia clínica
   const canViewHistory = user?.role === 'admin' || user?.role === 'dentist';
+  // Recepción no ve los campos médicos de la ficha
+  const showMedical = user?.role !== 'receptionist';
+  // El odontólogo firma sus propios registros: el servidor asigna
+  // staff_id. Solo el admin elige (y debe elegir) el odontólogo.
+  const chooseDentist = user?.role === 'admin';
 
   // ── Estado: paciente ──────────────────────────────────────────
   const [patient,        setPatient]        = useState(null);
@@ -99,8 +112,9 @@ const PatientDetailPage = () => {
   // ── Estado: lista de dentistas ────────────────────────────────
   const [dentists, setDentists] = useState([]);
 
-  // ── Estado: diálogo de nuevo registro ────────────────────────
+  // ── Estado: diálogo de nuevo registro / edición ──────────────
   const [dialogOpen,  setDialogOpen]  = useState(false);
+  const [editingId,   setEditingId]   = useState(null); // null = crear, id = editar
   const [recordForm,  setRecordForm]  = useState(EMPTY_RECORD);
   const [saving,      setSaving]      = useState(false);
   const [formError,   setFormError]   = useState('');
@@ -144,13 +158,13 @@ const PatientDetailPage = () => {
 
   useEffect(() => { fetchRecords(); }, [fetchRecords]);
 
-  // ── Carga de dentistas para el formulario ─────────────────────
+  // ── Carga de dentistas para el formulario (solo admin elige) ──
   useEffect(() => {
-    if (!canViewHistory) return;
+    if (!chooseDentist) return;
     getDentists()
       .then((data) => setDentists(data ?? []))
       .catch(() => {}); // silencioso; el select quedará vacío
-  }, [canViewHistory]);
+  }, [chooseDentist]);
 
   // ── Manejo del formulario ─────────────────────────────────────
   const handleFieldChange = (e) => {
@@ -158,10 +172,29 @@ const PatientDetailPage = () => {
     setRecordForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleOpenDialog = () => {
-    setRecordForm(EMPTY_RECORD);
+  // `inicial` prellena el formulario de alta (p. ej. una corrección)
+  const handleOpenDialog = (inicial = {}) => {
+    setEditingId(null);
+    setRecordForm({ ...EMPTY_RECORD, ...inicial });
     setFormError('');
     setDialogOpen(true);
+  };
+
+  // Editar solo se ofrece si el backend devolvió puede_editar
+  const handleOpenEdit = (rec) => {
+    setEditingId(rec.id);
+    setRecordForm({
+      ...EMPTY_RECORD,
+      ...Object.fromEntries(EDITABLE_FIELDS.map((f) => [f, rec[f] ?? ''])),
+    });
+    setFormError('');
+    setDialogOpen(true);
+  };
+
+  // La corrección es un registro nuevo del mismo paciente; el
+  // original no se toca
+  const handleOpenCorrection = (rec) => {
+    handleOpenDialog({ chief_complaint: motivoCorreccion(rec) });
   };
 
   const handleCloseDialog = () => {
@@ -173,14 +206,29 @@ const PatientDetailPage = () => {
     setFormError('');
     setSaving(true);
     try {
-      // Omite campos vacíos para no enviar strings vacíos al backend
-      const payload = Object.fromEntries(
-        Object.entries(recordForm).filter(([, v]) => v !== '')
-      );
-      await createPatientRecord(id, payload);
+      if (editingId) {
+        // Al editar se envían todos los campos: vaciar uno es válido
+        const payload = Object.fromEntries(EDITABLE_FIELDS.map((f) => [f, recordForm[f]]));
+        await updateRecord(editingId, payload);
+      } else {
+        // Omite campos vacíos para no enviar strings vacíos al backend.
+        // Si no es admin, staff_id no se envía: lo asigna el servidor.
+        const payload = Object.fromEntries(
+          Object.entries(recordForm).filter(([k, v]) => v !== '' && (chooseDentist || k !== 'staff_id'))
+        );
+        await createPatientRecord(id, payload);
+      }
       setDialogOpen(false);
       fetchRecords(); // refresca la lista tras guardar
     } catch (err) {
+      // Un 403 ya lo muestra ForbiddenNotice con el mensaje del servidor
+      // (p. ej. venció el plazo de edición): se cierra y se recarga para
+      // que la historia muestre la acción que corresponde ahora.
+      if (isForbidden(err)) {
+        setDialogOpen(false);
+        fetchRecords();
+        return;
+      }
       setFormError(
         err.response?.data?.error ||
         err.response?.data?.message ||
@@ -268,9 +316,13 @@ const PatientDetailPage = () => {
           <DataRow icon={Phone}        label="Teléfono"            value={patient.phone} />
           <DataRow icon={LocationCity} label="Ciudad"              value={patient.city} />
           <DataRow icon={Cake}         label="Fecha de nacimiento" value={formatFecha(patient.birth_date)} />
-          <DataRow icon={Person}       label="Género"              value={GENDER_LABEL[patient.gender] || patient.gender} />
-          <DataRow icon={Bloodtype}    label="Tipo de sangre"      value={patient.blood_type} />
-          <DataRow icon={WarningAmber} label="Alergias"            value={patient.allergies} />
+          {showMedical && (
+            <>
+              <DataRow icon={Person}       label="Género"         value={GENDER_LABEL[patient.gender] || patient.gender} />
+              <DataRow icon={Bloodtype}    label="Tipo de sangre" value={patient.blood_type} />
+              <DataRow icon={WarningAmber} label="Alergias"       value={patient.allergies} />
+            </>
+          )}
         </Box>
       </Paper>
 
@@ -289,7 +341,7 @@ const PatientDetailPage = () => {
             <Button
               variant="contained"
               startIcon={<AddCircle />}
-              onClick={handleOpenDialog}
+              onClick={() => handleOpenDialog()}
               sx={{ borderRadius: '12px', px: 2.5 }}
             >
               Nuevo registro
@@ -370,7 +422,7 @@ const PatientDetailPage = () => {
                   p: 3,
                 }}
               >
-                {/* Encabezado: fecha + nombre del odontólogo */}
+                {/* Encabezado: quién firmó y cuándo + acción permitida */}
                 <Box
                   sx={{
                     display: 'flex',
@@ -381,19 +433,51 @@ const PatientDetailPage = () => {
                     gap: 1,
                   }}
                 >
-                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                    {formatFechaHora(parseInstante(rec.created_at))}
-                  </Typography>
-                  <Chip
-                    label={rec.staff_name || 'Sin asignar'}
-                    size="small"
-                    sx={{
-                      background: 'rgba(37,99,235,0.12)',
-                      color: '#2563EB',
-                      fontWeight: 600,
-                      fontSize: 12,
-                    }}
-                  />
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                    <Chip
+                      label={rec.staff_name || 'Sin asignar'}
+                      size="small"
+                      sx={{
+                        background: 'rgba(37,99,235,0.12)',
+                        color: '#2563EB',
+                        fontWeight: 600,
+                        fontSize: 12,
+                      }}
+                    />
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                      Firmado por {rec.staff_name || '—'} · {formatFechaHora(parseInstante(rec.created_at))}
+                    </Typography>
+                  </Box>
+
+                  {/* El backend decide si se puede editar; aquí no se recalcula */}
+                  {rec.puede_editar === true ? (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      {rec.editable_hasta && (
+                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                          Editable hasta las {formatHora(parseInstante(rec.editable_hasta))}
+                        </Typography>
+                      )}
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<Edit fontSize="small" />}
+                        onClick={() => handleOpenEdit(rec)}
+                        sx={{ borderRadius: '8px' }}
+                      >
+                        Editar
+                      </Button>
+                    </Box>
+                  ) : (
+                    <Button
+                      size="small"
+                      variant="text"
+                      startIcon={<PostAdd fontSize="small" />}
+                      onClick={() => handleOpenCorrection(rec)}
+                      sx={{ borderRadius: '8px' }}
+                    >
+                      Agregar corrección
+                    </Button>
+                  )}
                 </Box>
 
                 <Divider sx={{ mb: 2, borderColor: dividerClr }} />
@@ -438,7 +522,7 @@ const PatientDetailPage = () => {
         }}
       >
         <DialogTitle sx={{ fontWeight: 600, color: 'text.primary', pb: 1 }}>
-          Nuevo registro clínico
+          {editingId ? 'Editar registro clínico' : 'Nuevo registro clínico'}
         </DialogTitle>
 
         <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
@@ -446,26 +530,29 @@ const PatientDetailPage = () => {
             <Alert severity="error" sx={{ borderRadius: '12px' }}>{formError}</Alert>
           )}
 
-          {/* Selector de odontólogo */}
-          <TextField
-            select
-            label="Odontólogo *"
-            name="staff_id"
-            value={recordForm.staff_id}
-            onChange={handleFieldChange}
-            size="small"
-            fullWidth
-          >
-            {dentists.length === 0 ? (
-              <MenuItem disabled value="">Cargando…</MenuItem>
-            ) : (
-              dentists.map((d) => (
-                <MenuItem key={d.id} value={d.id}>
-                  {d.first_name} {d.last_name}
-                </MenuItem>
-              ))
-            )}
-          </TextField>
+          {/* Selector de odontólogo: solo admin y solo al crear.
+              Para el odontólogo lo asigna el servidor. */}
+          {chooseDentist && !editingId && (
+            <TextField
+              select
+              label="Odontólogo *"
+              name="staff_id"
+              value={recordForm.staff_id}
+              onChange={handleFieldChange}
+              size="small"
+              fullWidth
+            >
+              {dentists.length === 0 ? (
+                <MenuItem disabled value="">Cargando…</MenuItem>
+              ) : (
+                dentists.map((d) => (
+                  <MenuItem key={d.id} value={d.id}>
+                    {d.first_name} {d.last_name}
+                  </MenuItem>
+                ))
+              )}
+            </TextField>
+          )}
 
           <TextField
             label="Motivo de consulta *"
@@ -527,12 +614,16 @@ const PatientDetailPage = () => {
           <Button
             variant="contained"
             onClick={handleSaveRecord}
-            disabled={saving || !recordForm.staff_id || !recordForm.chief_complaint}
+            disabled={
+              saving
+              || !recordForm.chief_complaint
+              || (chooseDentist && !editingId && !recordForm.staff_id)
+            }
             sx={{ borderRadius: '12px', minWidth: 120 }}
           >
             {saving
               ? <CircularProgress size={20} color="inherit" />
-              : 'Guardar registro'
+              : editingId ? 'Guardar cambios' : 'Guardar registro'
             }
           </Button>
         </DialogActions>

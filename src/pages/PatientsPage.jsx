@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useColorMode } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import {
   Box, Typography, Button, TextField, InputAdornment,
   Table, TableHead, TableBody, TableRow, TableCell, TableContainer,
@@ -17,6 +18,7 @@ import {
   Phone, Email, LocationOn, Bloodtype,
 } from '@mui/icons-material';
 import { getPatients, createPatient, updatePatient, deletePatient } from '../api/patients';
+import { isForbidden } from '../api/client';
 import AnimatedList from '../components/AnimatedList';
 import { CardListSkeleton, TableRowsSkeleton } from '../components/Skeletons';
 
@@ -29,6 +31,10 @@ const GENDER_OPTIONS = [
 ];
 
 const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
+// Campos médicos: recepción no los ve ni los envía. El género va
+// aquí porque la API tampoco lo incluye en los datos de contacto.
+const MEDICAL_FIELDS = ['gender', 'blood_type', 'allergies'];
 
 // ── Estado inicial del formulario ────────────────────────────
 const EMPTY_FORM = {
@@ -74,6 +80,11 @@ const PatientsPage = () => {
   const navigate = useNavigate();
   const { mode } = useColorMode();
   const isDark = mode === 'dark';
+  const { user } = useAuth();
+
+  // Recepción no ve los campos médicos; solo admin desactiva pacientes
+  const showMedical = user?.role !== 'receptionist';
+  const canDeactivate = user?.role === 'admin';
 
   // Fondo glass adaptado al modo
   const glassBg = isDark ? 'rgba(22,27,34,0.70)' : 'rgba(255,255,255,0.70)';
@@ -199,7 +210,7 @@ const PatientsPage = () => {
     try {
       // Enviamos solo los campos con valor para no mandar strings vacíos
       const payload = Object.fromEntries(
-        Object.entries(form).filter(([, v]) => v !== '')
+        Object.entries(form).filter(([k, v]) => v !== '' && (showMedical || !MEDICAL_FIELDS.includes(k)))
       );
       if (editingId) {
         await updatePatient(editingId, payload);
@@ -210,7 +221,8 @@ const PatientsPage = () => {
       setEditingId(null);
       fetchPatients(searchText.trim()); // refresca la lista
     } catch (err) {
-      setFormError(
+      // Un 403 ya lo muestra ForbiddenNotice con el mensaje del servidor
+      if (!isForbidden(err)) setFormError(
         err.response?.data?.error ||
         err.response?.data?.message ||
         'Error al guardar el paciente'
@@ -241,7 +253,8 @@ const PatientsPage = () => {
       setConfirmPatient(null);
       fetchPatients(searchText.trim()); // refresca la lista
     } catch (err) {
-      setDeleteError(
+      if (isForbidden(err)) setConfirmPatient(null);
+      else setDeleteError(
         err.response?.data?.error ||
         err.response?.data?.message ||
         'Error al desactivar el paciente'
@@ -363,7 +376,7 @@ const PatientsPage = () => {
                       {p.city}
                     </Box>
                   )}
-                  {p.blood_type && (
+                  {showMedical && p.blood_type && (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, color: 'text.secondary', fontSize: 12.5 }}>
                       <Bloodtype sx={{ fontSize: 15 }} />
                       {p.blood_type}
@@ -391,15 +404,17 @@ const PatientsPage = () => {
                       <Edit fontSize="small" />
                     </IconButton>
                   </Tooltip>
-                  <Tooltip title="Desactivar">
-                    <IconButton
-                      size="small"
-                      onClick={(e) => { e.stopPropagation(); handleOpenConfirm(p); }}
-                      sx={{ color: '#D32F2F', opacity: 0.7, '&:hover': { opacity: 1 } }}
-                    >
-                      <Delete fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
+                  {canDeactivate && (
+                    <Tooltip title="Desactivar">
+                      <IconButton
+                        size="small"
+                        onClick={(e) => { e.stopPropagation(); handleOpenConfirm(p); }}
+                        sx={{ color: '#D32F2F', opacity: 0.7, '&:hover': { opacity: 1 } }}
+                      >
+                        <Delete fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  )}
                 </Box>
               </Paper>
             );
@@ -426,8 +441,8 @@ const PatientsPage = () => {
                   <TableCell sx={HEADER_CELL_SX}>Nombre completo</TableCell>
                   <TableCell sx={HEADER_CELL_SX}>Teléfono</TableCell>
                   <TableCell sx={HEADER_CELL_SX}>Ciudad</TableCell>
-                  <TableCell sx={HEADER_CELL_SX}>Tipo de sangre</TableCell>
-                  <TableCell sx={{ ...HEADER_CELL_SX, width: 128, textAlign: 'center' }}>
+                  {showMedical && <TableCell sx={HEADER_CELL_SX}>Tipo de sangre</TableCell>}
+                  <TableCell sx={{ ...HEADER_CELL_SX, width: canDeactivate ? 128 : 96, textAlign: 'center' }}>
                     Acciones
                   </TableCell>
                 </TableRow>
@@ -436,7 +451,7 @@ const PatientsPage = () => {
               {/* Estado: cargando */}
               {loadingList ? (
                 <TableBody>
-                  <TableRowsSkeleton rows={6} cols={4} actions={3} />
+                  <TableRowsSkeleton rows={6} cols={showMedical ? 4 : 3} actions={canDeactivate ? 3 : 2} />
                 </TableBody>
               ) : (
               <AnimatedList component={TableBody} refreshing={refreshing}>
@@ -444,7 +459,7 @@ const PatientsPage = () => {
                 {/* Estado: sin resultados */}
                 {!loadingList && patients.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ py: 6, color: 'text.secondary', fontSize: 14 }}>
+                    <TableCell colSpan={showMedical ? 5 : 4} align="center" sx={{ py: 6, color: 'text.secondary', fontSize: 14 }}>
                       {searchText
                         ? `Sin resultados para "${searchText}"`
                         : 'No hay pacientes registrados aún'}
@@ -464,7 +479,7 @@ const PatientsPage = () => {
                     </TableCell>
                     <TableCell sx={{ color: 'text.secondary' }}>{p.phone || '—'}</TableCell>
                     <TableCell sx={{ color: 'text.secondary' }}>{p.city  || '—'}</TableCell>
-                    <TableCell sx={{ color: 'text.secondary' }}>{p.blood_type || '—'}</TableCell>
+                    {showMedical && <TableCell sx={{ color: 'text.secondary' }}>{p.blood_type || '—'}</TableCell>}
 
                     {/* Acciones: ver detalle, editar y desactivar */}
                     <TableCell align="center" sx={{ py: 0.5 }}>
@@ -486,15 +501,17 @@ const PatientsPage = () => {
                           <Edit fontSize="small" />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Desactivar">
-                        <IconButton
-                          size="small"
-                          onClick={() => handleOpenConfirm(p)}
-                          sx={{ color: '#D32F2F', opacity: 0.7, '&:hover': { opacity: 1 } }}
-                        >
-                          <Delete fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
+                      {canDeactivate && (
+                        <Tooltip title="Desactivar">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleOpenConfirm(p)}
+                            sx={{ color: '#D32F2F', opacity: 0.7, '&:hover': { opacity: 1 } }}
+                          >
+                            <Delete fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -569,19 +586,21 @@ const PatientsPage = () => {
               size="small"
               InputLabelProps={{ shrink: true }}
             />
-            <TextField
-              select
-              label="Género"
-              name="gender"
-              value={form.gender}
-              onChange={handleFieldChange}
-              fullWidth
-              size="small"
-            >
-              {GENDER_OPTIONS.map((opt) => (
-                <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
-              ))}
-            </TextField>
+            {showMedical && (
+              <TextField
+                select
+                label="Género"
+                name="gender"
+                value={form.gender}
+                onChange={handleFieldChange}
+                fullWidth
+                size="small"
+              >
+                {GENDER_OPTIONS.map((opt) => (
+                  <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                ))}
+              </TextField>
+            )}
           </Box>
 
           {/* Teléfono y ciudad: lado a lado en escritorio, apilados en móvil */}
@@ -608,33 +627,38 @@ const PatientsPage = () => {
             />
           </Box>
 
-          {/* Tipo de sangre */}
-          <TextField
-            select
-            label="Tipo de sangre"
-            name="blood_type"
-            value={form.blood_type}
-            onChange={handleFieldChange}
-            size="small"
-            sx={{ width: { xs: '100%', sm: '50%' } }}
-          >
-            {BLOOD_TYPES.map((bt) => (
-              <MenuItem key={bt} value={bt}>{bt}</MenuItem>
-            ))}
-          </TextField>
+          {/* Campos médicos: ocultos para recepción */}
+          {showMedical && (
+            <>
+              {/* Tipo de sangre */}
+              <TextField
+                select
+                label="Tipo de sangre"
+                name="blood_type"
+                value={form.blood_type}
+                onChange={handleFieldChange}
+                size="small"
+                sx={{ width: { xs: '100%', sm: '50%' } }}
+              >
+                {BLOOD_TYPES.map((bt) => (
+                  <MenuItem key={bt} value={bt}>{bt}</MenuItem>
+                ))}
+              </TextField>
 
-          {/* Alergias */}
-          <TextField
-            label="Alergias"
-            name="allergies"
-            value={form.allergies}
-            onChange={handleFieldChange}
-            multiline
-            rows={2}
-            size="small"
-            fullWidth
-            placeholder="Penicilina, látex…"
-          />
+              {/* Alergias */}
+              <TextField
+                label="Alergias"
+                name="allergies"
+                value={form.allergies}
+                onChange={handleFieldChange}
+                multiline
+                rows={2}
+                size="small"
+                fullWidth
+                placeholder="Penicilina, látex…"
+              />
+            </>
+          )}
         </DialogContent>
 
         <DialogActions sx={{ px: { xs: 2, md: 3 }, py: 2, gap: 1 }}>
