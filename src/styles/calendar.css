@@ -1,269 +1,264 @@
 /* src/styles/calendar.css
-   Estilos tipo Plandok para FullCalendar.
+   Estilo tipo Calendario de Apple para FullCalendar.
+
+   Principios:
+   - La rejilla se retira: líneas de hora muy tenues, sin líneas
+     de media hora, sin bordes exteriores. Lo que destaca son las
+     citas, no la cuadrícula.
+   - Hoy se marca con el número en un círculo rojo y la línea de
+     la hora actual, no con un fondo de color en toda la columna.
+   - Los bloques de cita los dibuja EventoCita.jsx; aquí solo se
+     quita el estilo propio de FullCalendar para que no compita.
+
    Las variables se definen en el wrapper [data-fc-mode="light|dark"]
    para que cascaden a todos los hijos .fc-*.
 */
 
 /* ── Variables modo claro ──────────────────────────────────────── */
 [data-fc-mode="light"] {
-  /* Sobreescribe las vars internas de FullCalendar */
-  --fc-border-color:       rgba(0, 0, 0, 0.07);
-  --fc-today-bg-color:     rgba(28, 100, 173, 0.05);
-  --fc-neutral-bg-color:   transparent;
-  --fc-page-bg-color:      transparent;
-  --fc-now-indicator-color: #E53935;
-  --fc-highlight-color:    rgba(28, 100, 173, 0.08);
-  /* Variables propias */
-  --cal-header-label:      #42648A;
-  --cal-today-label:       #1C64AD;
-  --cal-slot-label:        #8FACC6;
-  --cal-toolbar-title:     #0C2A4A;
-  --cal-btn-shadow:        0 2px 6px rgba(28, 100, 173, 0.20);
+  --fc-border-color:        rgba(10, 31, 68, 0.07);
+  --fc-today-bg-color:      transparent;
+  --fc-neutral-bg-color:    transparent;
+  --fc-page-bg-color:       transparent;
+  --fc-now-indicator-color: #FF3B30;
+  --fc-highlight-color:     rgba(37, 99, 235, 0.10);
+  --cal-label:              #8A94A6;
+  --cal-label-strong:       #0A1F44;
+  --cal-today:              #FF3B30;
+  --cal-hover:              rgba(10, 31, 68, 0.025);
+  --cal-surface:            #FFFFFF;
 }
 
 /* ── Variables modo oscuro ─────────────────────────────────────── */
 [data-fc-mode="dark"] {
-  --fc-border-color:       rgba(255, 255, 255, 0.06);
-  --fc-today-bg-color:     rgba(44, 127, 212, 0.10);
-  --fc-neutral-bg-color:   transparent;
-  --fc-page-bg-color:      transparent;
-  --fc-now-indicator-color: #EF5350;
-  --fc-highlight-color:    rgba(44, 127, 212, 0.12);
-  --cal-header-label:      #9DB2CC;
-  --cal-today-label:       #5BA3E8;
-  --cal-slot-label:        #4A6A88;
-  --cal-toolbar-title:     #E8EEF6;
-  --cal-btn-shadow:        0 2px 8px rgba(0, 0, 0, 0.35);
+  --fc-border-color:        rgba(255, 255, 255, 0.07);
+  --fc-today-bg-color:      transparent;
+  --fc-neutral-bg-color:    transparent;
+  --fc-page-bg-color:       transparent;
+  --fc-now-indicator-color: #FF453A;
+  --fc-highlight-color:     rgba(96, 165, 250, 0.14);
+  --cal-label:              #7D8590;
+  --cal-label-strong:       #E6EDF3;
+  --cal-today:              #FF453A;
+  --cal-hover:              rgba(255, 255, 255, 0.025);
+  --cal-surface:            #161B22;
 }
 
-/* ── Limpieza de bordes exteriores ─────────────────────────────── */
-.fc .fc-scrollgrid {
-  border: none !important;
+.fc {
+  font-feature-settings: 'tnum' 1;   /* horas alineadas en columna */
 }
+
+/* ── Sin bordes exteriores ──────────────────────────────────────── */
+.fc .fc-scrollgrid { border: none !important; }
 .fc .fc-scrollgrid-section > td,
-.fc .fc-scrollgrid-section > th {
-  border: none;
-}
+.fc .fc-scrollgrid-section > th { border: none; }
 .fc-theme-standard td,
-.fc-theme-standard th {
-  border-color: var(--fc-border-color);
-}
+.fc-theme-standard th { border-color: var(--fc-border-color); }
 
-/* ── Toolbar: título ────────────────────────────────────────────── */
-.fc .fc-toolbar-title {
-  font-size: 1.1rem !important;
-  font-weight: 700 !important;
-  color: var(--cal-toolbar-title) !important;
-  letter-spacing: -0.01em;
-}
+/* Sin líneas verticales entre días en la cabecera: más aire */
+.fc .fc-col-header-cell { border-left-color: transparent !important; border-right-color: transparent !important; }
 
-/* ── Botones de la toolbar ──────────────────────────────────────── */
-.fc .fc-button-primary {
-  background-color: #1C64AD !important;
-  border-color:     #1C64AD !important;
-  border-radius:    8px    !important;
-  font-size:        0.8rem !important;
-  padding:          5px 14px !important;
-  font-weight:      500    !important;
-  box-shadow:       var(--cal-btn-shadow) !important;
-  transition:       background-color 0.18s, box-shadow 0.18s !important;
-}
-.fc .fc-button-primary:hover:not(:disabled) {
-  background-color: #0C447C !important;
-  border-color:     #0C447C !important;
-  box-shadow:       0 4px 14px rgba(28, 100, 173, 0.30) !important;
-}
-.fc .fc-button-primary:not(:disabled).fc-button-active,
-.fc .fc-button-primary:not(:disabled):active {
-  background-color: #0C447C !important;
-  border-color:     #0C447C !important;
-}
-.fc .fc-button-primary:focus {
-  box-shadow: none !important;
-  outline: none !important;
-}
-/* Grupo de botones: elimina el efecto "pegado" predeterminado */
-.fc .fc-button-group > .fc-button {
-  border-radius: 8px !important;
-  margin-left: 2px;
-}
-.fc .fc-button-group > .fc-button:first-child {
-  margin-left: 0;
-}
-
-/* ── Cabecera de días ───────────────────────────────────────────── */
+/* ── Cabecera de días: "LUN" + número ───────────────────────────── */
 .fc .fc-col-header-cell {
   padding: 10px 0 8px !important;
   background: transparent;
-  border-color: var(--fc-border-color);
 }
 .fc .fc-col-header-cell-cushion {
-  color: var(--cal-header-label) !important;
-  font-weight: 600;
-  font-size: 0.82rem;
   text-decoration: none !important;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  line-height: 1.3;
+  padding: 0 !important;
 }
-/* Columna del día actual: resalta en azul */
-.fc .fc-day-today .fc-col-header-cell-cushion {
-  color: var(--cal-today-label) !important;
+.fc .dia-cabecera {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
+.fc .dia-semana {
+  color: var(--cal-label);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+.fc .dia-numero {
+  display: inline-grid;
+  place-items: center;
+  min-width: 30px;
+  height: 30px;
+  border-radius: 15px;
+  color: var(--cal-label-strong);
+  font-size: 19px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.fc .dia-numero.es-hoy {
+  background: var(--cal-today);
+  color: #FFFFFF;
+  font-weight: 700;
+}
+.fc .fc-day-today .dia-semana { color: var(--cal-today); }
 
-/* ── Slots de hora ──────────────────────────────────────────────── */
+/* ── Rejilla de horas ───────────────────────────────────────────── */
 .fc .fc-timegrid-slot {
-  height: 44px !important;
+  height: 30px !important;
   border-color: var(--fc-border-color);
 }
-/* Línea punteada en los medios (ej: 08:30, 09:30…) */
-.fc .fc-timegrid-slot-minor {
-  border-top-style: dotted !important;
-  border-color: var(--fc-border-color) !important;
-  opacity: 0.55;
-}
+/* Media hora: sin línea. La hora en punto basta para ubicarse */
+.fc .fc-timegrid-slot-minor { border-top-color: transparent !important; }
 
-/* Etiquetas de hora laterales (08:00, 09:00…) */
+/* Etiquetas de hora a la izquierda, discretas */
+.fc .fc-timegrid-slot-label { border: none !important; vertical-align: top; }
 .fc .fc-timegrid-slot-label-cushion {
-  color:       var(--cal-slot-label) !important;
-  font-size:   0.72rem !important;
+  color: var(--cal-label) !important;
+  font-size: 11px !important;
   font-weight: 500;
-  padding-right: 10px;
+  padding: 2px 10px 0 0 !important;
 }
-/* Quita borde de la celda vacía de la eje de horas */
-.fc .fc-timegrid-axis {
-  border-color: var(--fc-border-color) !important;
-}
+.fc .fc-timegrid-axis { border: none !important; }
 
-/* ── Indicador de hora actual ───────────────────────────────────── */
+/* Pasar el puntero por un hueco libre sugiere que se puede crear ahí */
+.fc .fc-timegrid-col:hover { background: var(--cal-hover); }
+
+/* ── Hora actual: línea roja con punto ──────────────────────────── */
 .fc .fc-timegrid-now-indicator-line {
-  border-color:     var(--fc-now-indicator-color) !important;
-  border-top-width: 2px !important;
-}
-.fc .fc-timegrid-now-indicator-arrow {
   border-color: var(--fc-now-indicator-color) !important;
+  border-top-width: 1.5px !important;
 }
-
-/* ── Eventos ────────────────────────────────────────────────────── */
-.fc .fc-event {
-  border-radius: 8px  !important;
-  border:        none !important;
-  padding:       3px 7px !important;
-  box-shadow:    0 2px 8px rgba(0, 0, 0, 0.14) !important;
-  font-size:     0.77rem !important;
-  font-weight:   500;
-  cursor:        pointer;
-  transition:    box-shadow 0.15s, transform 0.15s;
-}
-.fc .fc-event:hover {
-  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.22) !important;
-  transform:  translateY(-1px);
-}
-.fc .fc-timegrid-event .fc-event-main {
-  padding: 2px 4px;
-}
-.fc .fc-event-title {
-  font-weight: 600;
-  overflow: hidden;
-}
-.fc .fc-event-time {
-  font-size: 0.69rem !important;
-  opacity: 0.88;
-  font-weight: 400;
-}
-
-/* ── Área de selección (arrastrar para crear) ───────────────────── */
-.fc .fc-highlight {
-  background:    var(--fc-highlight-color) !important;
-  border-radius: 6px;
-}
-
-/* ── Columna del día actual ─────────────────────────────────────── */
-.fc .fc-day-today {
-  background: var(--fc-today-bg-color) !important;
-}
-
-/* ── Vista mensual: números de día ─────────────────────────────── */
-.fc .fc-daygrid-day-number {
-  color:           var(--cal-header-label) !important;
-  font-size:       0.8rem;
-  text-decoration: none !important;
-  padding:         6px 8px;
-}
-.fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
-  background:    #1C64AD;
-  color:         #ffffff !important;
+.fc .fc-timegrid-now-indicator-line::before {
+  content: '';
+  position: absolute;
+  left: -5px;
+  top: -5px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
-  width:         28px;
-  height:        28px;
-  display:       flex;
-  align-items:   center;
-  justify-content: center;
-  font-weight:   700;
-  margin:        4px;
-  padding:       0;
+  background: var(--fc-now-indicator-color);
+}
+.fc .fc-timegrid-now-indicator-arrow { display: none; }
+/* La línea pasa POR DETRÁS de las citas: no tacha el texto de la
+   cita en curso (se leería como cancelada) */
+.fc .fc-timegrid-now-indicator-container { z-index: 2 !important; }
+.fc .fc-timegrid-col-events { z-index: 3; }
+
+/* ── Citas: FullCalendar solo aporta la posición ────────────────── */
+.fc .fc-timegrid-event,
+.fc .fc-timegrid-event .fc-event-main {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+.fc .fc-timegrid-event-harness { margin: 0 1px 1px; }
+.fc-direction-ltr .fc-timegrid-col-events { margin: 0 4px 0 2px; }
+/* El borde blanco que FullCalendar pone entre citas simultáneas */
+.fc .fc-timegrid-event-harness-inset .fc-timegrid-event { box-shadow: none !important; }
+
+.fc .fc-event { cursor: pointer; }
+.fc .fc-timegrid-event .cita {
+  transition: transform 100ms ease-out, filter 200ms ease;
+}
+.fc .fc-timegrid-event:hover .cita { filter: brightness(0.97) saturate(1.1); }
+/* Respuesta al presionar, no al soltar */
+.fc .fc-timegrid-event:active .cita { transform: scale(0.98); }
+[data-fc-mode="dark"] .fc .fc-timegrid-event:hover .cita { filter: brightness(1.12); }
+
+/* Punto que late en las citas "En consulta" */
+.cita-pulso {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  animation: cita-pulso 1.6s ease-in-out infinite;
+}
+@keyframes cita-pulso {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
 }
 
-/* ── "Más eventos" en vista mensual ─────────────────────────────── */
+/* Selección al arrastrar para crear */
+.fc .fc-highlight { background: var(--fc-highlight-color) !important; border-radius: 6px; }
+.fc .fc-timegrid-event.fc-event-mirror .cita,
+.fc .fc-event-mirror { opacity: 0.85; }
+
+/* ── Vista de mes ───────────────────────────────────────────────── */
+.fc .fc-daygrid-day-top { flex-direction: row; padding: 4px 6px 0; }
+.fc .fc-daygrid-day-number {
+  display: inline-grid;
+  place-items: center;
+  min-width: 26px;
+  height: 26px;
+  border-radius: 13px;
+  padding: 0 !important;
+  color: var(--cal-label-strong) !important;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none !important;
+}
+.fc .fc-day-other .fc-daygrid-day-number { color: var(--cal-label) !important; opacity: 0.6; }
+.fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+  background: var(--cal-today);
+  color: #FFFFFF !important;
+  font-weight: 700;
+}
+.fc .fc-daygrid-event {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 6px;
+  margin: 1px 4px 0 !important;
+  padding: 1px 0;
+}
+.fc .fc-daygrid-event:hover { background: var(--cal-hover) !important; }
+.fc .fc-daygrid-event-dot { display: none; }
 .fc .fc-daygrid-more-link {
-  color:       #1C64AD !important;
+  color: var(--cal-label) !important;
   font-weight: 600;
-  font-size:   0.75rem;
+  font-size: 11.5px;
+  margin-left: 8px;
 }
 
-/* ── Responsive: pantallas menores al breakpoint 'md' (900px) ────
-   Compacta la toolbar (permite que pase a dos líneas si no cabe)
-   y reduce tamaños de fuente/paddings para que el calendario se
-   lea bien en móvil. No afecta el diseño de escritorio. ──────── */
+/* ── Movimiento reducido: sin pulso ni escala ───────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .cita-pulso { animation: none; }
+  .fc .fc-timegrid-event:active .cita { transform: none; }
+}
+
+/* ── Móvil (menor al breakpoint 'md' de MUI, 900px) ─────────────── */
 @media (max-width: 899.98px) {
-  /* La barra de herramientas se centra y se envuelve en varias líneas
-     en vez de desbordar horizontalmente */
-  .fc .fc-toolbar {
-    flex-wrap: wrap;
-    justify-content: center;
-    row-gap: 8px;
-    column-gap: 6px;
-  }
-  .fc .fc-toolbar-chunk {
-    display: flex;
-    justify-content: center;
-  }
-  .fc .fc-toolbar-title {
-    font-size: 0.95rem !important;
-  }
+  .fc .fc-timegrid-slot { height: 34px !important; }
+  .fc .fc-timegrid-slot-label-cushion { font-size: 11px !important; padding-right: 8px !important; }
+  .fc .dia-numero { font-size: 16px; min-width: 26px; height: 26px; }
+  .fc .fc-daygrid-day-number { font-size: 12px; }
+}
 
-  /* Botones más compactos, cómodos de tocar pero sin desbordar */
-  .fc .fc-button-primary {
-    font-size: 0.72rem !important;
-    padding:   4px 9px !important;
+/* ── Citas angostas (varias a la misma hora) ────────────────────────
+   Cada cita mide su propio ancho (container query) y suelta primero
+   lo que se deduce de la posición: la hora, luego las iniciales.
+   El nombre del paciente es lo último que se sacrifica. */
+.fc .cita { container-type: inline-size; }
+@container (max-width: 150px) {
+  .cita .cita-hora { display: none; }
+}
+@container (max-width: 100px) {
+  .cita .cita-iniciales { display: none; }
+}
+/* Muy angostas (semana en el teléfono): el nombre se parte en
+   líneas, entre palabras, con letra más chica, en lugar de quedar
+   en "K…". Lo que no cabe en el alto de la cita se recorta. */
+@container (max-width: 80px) {
+  .cita .cita-nombre {
+    white-space: normal;      /* corta entre palabras: "Kevin / Mairena" */
+    text-overflow: clip;
+    font-size: 10.5px;
+    line-height: 1.15;
   }
+  .cita .cita-detalle { display: none; }
+}
 
-  /* Cabecera de días: etiquetas más chicas */
-  .fc .fc-col-header-cell-cushion {
-    font-size: 0.72rem;
-  }
-
-  /* Slots de hora: un poco más bajos y con etiquetas más chicas */
-  .fc .fc-timegrid-slot {
-    height: 38px !important;
-  }
-  .fc .fc-timegrid-slot-label-cushion {
-    font-size: 0.66rem !important;
-    padding-right: 6px;
-  }
-
-  /* Eventos: texto y padding reducidos para que quepan en columnas angostas */
-  .fc .fc-event {
-    font-size: 0.7rem !important;
-    padding:   2px 5px !important;
-  }
-  .fc .fc-event-time {
-    font-size: 0.62rem !important;
-  }
-
-  /* Vista mensual: números de día más compactos */
-  .fc .fc-daygrid-day-number {
-    font-size: 0.72rem;
-    padding:   4px 6px;
-  }
+/* Semana en el teléfono: día arriba, número abajo */
+@media (max-width: 899.98px) {
+  .fc .fc-timeGridWeek-view .dia-cabecera { flex-direction: column; gap: 2px; }
+  .fc .fc-timeGridWeek-view .dia-semana { font-size: 10px; letter-spacing: 0.02em; }
+  .fc .fc-timeGridWeek-view .dia-numero { font-size: 15px; min-width: 26px; height: 26px; }
+}
+@media (max-width: 899.98px) {
+  /* Semana en el teléfono: cada milímetro de ancho es para el nombre */
+  .fc .fc-timeGridWeek-view .fc-timegrid-col-events { margin: 0 1px; }
 }
