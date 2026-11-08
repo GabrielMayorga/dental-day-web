@@ -3,11 +3,17 @@
 // Pantalla de Agenda. Muestra las citas en un calendario
 // semanal/diario/mensual usando FullCalendar.
 // Permite crear citas haciendo clic o arrastrando en un hueco.
+//
+// Presentación inspirada en el Calendario de Apple:
+//   - Toolbar propia con título grande y selector segmentado.
+//   - Filtro de odontólogos en píldoras (selección múltiple).
+//   - Citas con relleno suave del color de su estado.
+//   - Solo días y horas de atención (CLINICA.horario).
+//   - En móvil: vista de día con tira de la semana arriba.
 // ============================================================
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
-  Box, Typography, Paper, FormControl,
-  InputLabel, Select, MenuItem, CircularProgress,
+  Box, Typography, Paper, CircularProgress, LinearProgress,
   Dialog, DialogTitle, DialogContent, DialogActions,
   Button, TextField, Alert, Stack, Snackbar,
   Chip, Divider, useTheme, useMediaQuery,
@@ -21,24 +27,32 @@ import { isForbidden } from '../api/client';
 import { getDentists } from '../api/staff';
 import { useColorMode } from '../context/ThemeContext';
 import '../styles/calendar.css';
-import { translateStatus } from '../utils/appointmentStatus';
-import { CalendarSkeleton } from '../components/Skeletons';
-import { aHoraLocal, sumarMinutos, formatFecha, formatHora } from '../utils/fechas';
+import { translateStatus, STATUS_LABELS, STATUS_COLORS } from '../utils/appointmentStatus';
+import {
+  aHoraLocal, hoyLocal, sumarMinutos, parseFechaLocal, formatFecha, formatHora,
+} from '../utils/fechas';
 import { horaCorta } from '../utils/disponibilidad';
+import { colorOdontologo, inicialesOdontologo } from '../utils/odontologos';
+import { CLINICA } from '../config/clinica';
 import NuevaCitaDialog from '../components/cita/NuevaCitaDialog';
 import { diaCorto } from '../components/cita/comun';
+import AgendaToolbar from '../components/agenda/AgendaToolbar';
+import FiltroOdontologos from '../components/agenda/FiltroOdontologos';
+import EventoCita from '../components/agenda/EventoCita';
+import SemanaMovil from '../components/agenda/SemanaMovil';
 
 // ── Helpers ──────────────────────────────────────────────────
 
-// Transforma una cita del backend al formato que espera FullCalendar
+// Transforma una cita del backend al formato que espera FullCalendar.
+// Los colores de fondo/borde van transparentes: el bloque lo dibuja
+// EventoCita con el color del estado (status_color de la BD).
 const toCalendarEvent = (cita) => ({
   id: String(cita.id),
-  title: `${cita.patient_name} — ${cita.reason || translateStatus(cita.status_name)}`,
+  title: cita.patient_name,
   start: cita.scheduled_at,
   end: sumarMinutos(cita.scheduled_at, cita.duration_minutes),
-  backgroundColor: cita.status_color,
-  borderColor: cita.status_color,
-  textColor: '#ffffff',
+  backgroundColor: 'transparent',
+  borderColor: 'transparent',
   extendedProps: {
     staffName: cita.staff_name,
     statusName: translateStatus(cita.status_name),
@@ -54,27 +68,38 @@ const toCalendarEvent = (cita) => ({
   },
 });
 
-// ── Localización en español ───────────────────────────────────
-// FullCalendar no incluye locales en el paquete base; se
-// configuran manualmente con buttonText y dayHeaderFormat.
-const calendarLocaleES = {
-  locale: 'es',
-  buttonText: {
-    today: 'Hoy',
-    month: 'Mes',
-    week: 'Semana',
-    day: 'Día',
-  },
-  allDayText: 'Todo el día',
-  moreLinkText: 'más',
+const mayuscula = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+// Título de la toolbar según la vista: "Octubre 2026",
+// "Oct – Nov 2026" o "Lunes 26 de octubre".
+const tituloDe = (vista, inicio, finExclusivo) => {
+  // Último día VISIBLE: el rango incluye el domingo aunque esté oculto
+  const fin = new Date(finExclusivo);
+  do { fin.setDate(fin.getDate() - 1); } while (DIAS_CERRADOS.includes(fin.getDay()) && fin > inicio);
+  const anio = String(inicio.getFullYear());
+  if (vista === 'timeGridDay') {
+    return {
+      principal: `${mayuscula(formatFecha(inicio, { weekday: 'long' }))} ${inicio.getDate()}`,
+      secundario: `${formatFecha(inicio, { month: 'long' })} ${anio}`,
+    };
+  }
+  if (vista === 'dayGridMonth') {
+    // La cuadrícula de mes empieza en la semana anterior: el mes
+    // real es el del día central del rango
+    const medio = new Date((inicio.getTime() + fin.getTime()) / 2);
+    return { principal: mayuscula(formatFecha(medio, { month: 'long' })), secundario: String(medio.getFullYear()) };
+  }
+  if (inicio.getMonth() === fin.getMonth()) {
+    return { principal: mayuscula(formatFecha(inicio, { month: 'long' })), secundario: anio };
+  }
+  const corto = (d) => mayuscula(formatFecha(d, { month: 'short' }).replace('.', ''));
+  return { principal: `${corto(inicio)} – ${corto(fin)}`, secundario: String(fin.getFullYear()) };
 };
 
-// Variante móvil: etiqueta de "Semana" acortada para que la barra
-// de botones quepa en pantallas angostas
-const calendarLocaleESMobile = {
-  ...calendarLocaleES,
-  buttonText: { ...calendarLocaleES.buttonText, week: 'Sem' },
-};
+// Días que la clínica NO atiende (FullCalendar los oculta)
+const DIAS_CERRADOS = [0, 1, 2, 3, 4, 5, 6].filter((d) => !CLINICA.horario.dias.includes(d));
+const DIAS_CORTOS = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'];
+const ESTADOS_LEYENDA = ['scheduled', 'confirmed', 'in_progress', 'completed', 'cancelled', 'no_show'];
 
 
 // ── Componente principal ──────────────────────────────────────
@@ -87,14 +112,15 @@ export default function AgendaPage() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  // ── Estilos glass — dependen del modo ────────────────────────
-  const glassPaperSx = {
-    background: isDark ? 'rgba(22,27,34,0.70)' : 'rgba(255,255,255,0.72)',
-    backdropFilter: 'blur(16px)',
-    WebkitBackdropFilter: 'blur(16px)',
-    border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(10,31,68,0.10)',
-    borderRadius: 3,
-    p: { xs: 2, md: 3 },
+  // ── Superficie del calendario ────────────────────────────────
+  // Sólida y sin desenfoque: el calendario es contenido, no una
+  // capa flotante. El vidrio se reserva para la navegación.
+  const surfaceSx = {
+    background: isDark ? '#161B22' : '#FFFFFF',
+    border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(10,31,68,0.08)',
+    borderRadius: '16px',
+    overflow: 'hidden',
+    position: 'relative',
   };
 
   const dialogPaperSx = {
@@ -108,10 +134,12 @@ export default function AgendaPage() {
   };
 
   // ── Estado del calendario ──────────────────────────────────
-  const [events, setEvents] = useState([]);
   const [dentists, setDentists] = useState([]);
-  const [selectedStaff, setSelectedStaff] = useState('');   // '' = Todos
-  const [loading, setLoading] = useState(true);
+  const [seleccion, setSeleccion] = useState([]);         // [] = todos los odontólogos
+  const [rango, setRango] = useState(null);               // { from, to } visible
+  const [vista, setVista] = useState(isMobile ? 'timeGridDay' : 'timeGridWeek');
+  const [titulo, setTitulo] = useState({ principal: 'Agenda', secundario: '' });
+  const [fechaVisible, setFechaVisible] = useState(hoyLocal());
 
   // ── Estado del diálogo de detalle de cita ─────────────────
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -129,36 +157,83 @@ export default function AgendaPage() {
   const [nuevaCita, setNuevaCita] = useState({ open: false, key: 0, inicial: {} });
   const [aviso, setAviso] = useState('');
 
-  // Referencia al calendario para llamar unselect() tras arrastrar
+  // Referencia al calendario para navegar y llamar unselect()
   const calendarRef = useRef(null);
+  const api = () => calendarRef.current?.getApi();
 
   // ── Carga de catálogos ─────────────────────────────────────
-
-  // Odontólogos: se cargan al montar (también alimentan el filtro superior)
   useEffect(() => {
     getDentists()
       .then(setDentists)
       .catch(() => setDentists([]));
   }, []);
 
-  // ── Carga de citas ─────────────────────────────────────────
-
-  const fetchEvents = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = selectedStaff ? { staffId: selectedStaff } : {};
-      const citas = await getAppointments(params);
-      setEvents(citas.map(toCalendarEvent));
-    } catch {
-      setEvents([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedStaff]);
+  // ── Carga de citas del rango visible ───────────────────────
+  // Solo se pide lo que se ve (from/to), no todo el historial.
+  // El calendario NO se desmonta mientras carga: conserva la fecha
+  // y la vista; solo aparece una barra fina de progreso.
+  //
+  // `cargando` se deriva: hay carga en curso mientras el último
+  // resultado recibido no corresponde al rango pedido.
+  const [recarga, setRecarga] = useState(0);
+  const recargar = useCallback(() => setRecarga((n) => n + 1), []);
+  const [resultado, setResultado] = useState({ clave: null, citas: [] });
+  const clave = rango ? `${rango.from}|${rango.to}|${recarga}` : null;
+  const citas = resultado.citas;
+  const cargando = clave !== null && resultado.clave !== clave;
 
   useEffect(() => {
-    fetchEvents();
-  }, [fetchEvents]);
+    if (!rango) return undefined;
+    const ctrl = new AbortController();
+    const pedida = `${rango.from}|${rango.to}|${recarga}`;
+    getAppointments(rango, { signal: ctrl.signal })
+      .then((data) => setResultado({ clave: pedida, citas: data }))
+      .catch((err) => {
+        if (err?.name !== 'CanceledError') setResultado({ clave: pedida, citas: [] });
+      });
+    return () => ctrl.abort();
+  }, [rango, recarga]);
+
+  // FullCalendar avisa cada vez que cambia el rango o la vista
+  const handleDatesSet = useCallback((info) => {
+    const from = aHoraLocal(info.start);
+    const to = aHoraLocal(info.end);
+    setRango((r) => (r && r.from === from && r.to === to ? r : { from, to }));
+    setVista(info.view.type);
+    setTitulo(tituloDe(info.view.type, info.view.currentStart, info.view.currentEnd));
+    setFechaVisible(aHoraLocal(info.view.currentStart).slice(0, 10));
+  }, []);
+
+  // ── Filtro por odontólogo (en el navegador) ────────────────
+  const citasFiltradas = useMemo(
+    () => (seleccion.length ? citas.filter((c) => seleccion.includes(c.staff_id)) : citas),
+    [citas, seleccion],
+  );
+  const events = useMemo(() => citasFiltradas.map(toCalendarEvent), [citasFiltradas]);
+
+  // Citas por odontólogo en el rango visible (sin contar canceladas)
+  const conteos = useMemo(() => {
+    const c = {};
+    citas.forEach((x) => {
+      if (x.status_name !== 'cancelled') c[x.staff_id] = (c[x.staff_id] || 0) + 1;
+    });
+    return c;
+  }, [citas]);
+  const totalActivas = useMemo(() => citas.filter((x) => x.status_name !== 'cancelled').length, [citas]);
+
+  // Días con citas (para los puntos de la tira semanal en móvil)
+  const diasConCitas = useMemo(
+    () => new Set(citasFiltradas.map((c) => c.scheduled_at.slice(0, 10))),
+    [citasFiltradas],
+  );
+
+  // Iniciales del odontólogo en cada cita solo cuando se ven varios:
+  // con uno solo filtrado, sería información repetida
+  const mostrarOdontologo = seleccion.length !== 1 && dentists.length > 1;
+  const odontologoDe = useCallback((staffId) => {
+    const d = dentists.find((x) => String(x.id) === String(staffId));
+    return d ? { iniciales: inicialesOdontologo(d), color: colorOdontologo(dentists, staffId) } : null;
+  }, [dentists]);
 
   // ── Handlers del calendario ────────────────────────────────
 
@@ -167,15 +242,26 @@ export default function AgendaPage() {
   }, []);
 
   // Abre el diálogo con el día y la hora del hueco indicado (en la
-  // vista de mes, solo el día) y el odontólogo del filtro, si hay uno.
+  // vista de mes, solo el día) y el odontólogo del filtro, si hay
+  // exactamente uno elegido.
   const openDialog = useCallback((date, allDay) => {
     const local = aHoraLocal(date);
     abrirNuevaCita({
       fecha: local.slice(0, 10),
       hora: allDay ? null : local.slice(11, 16),
-      staffId: selectedStaff || null,
+      staffId: seleccion.length === 1 ? seleccion[0] : null,
     });
-  }, [abrirNuevaCita, selectedStaff]);
+  }, [abrirNuevaCita, seleccion]);
+
+  // Botón "Nueva cita": sin hora; la fecha es la visible si es hoy o futura
+  const handleNueva = useCallback(() => {
+    const hoy = hoyLocal();
+    abrirNuevaCita({
+      fecha: vista === 'timeGridDay' && fechaVisible > hoy ? fechaVisible : hoy,
+      hora: null,
+      staffId: seleccion.length === 1 ? seleccion[0] : null,
+    });
+  }, [abrirNuevaCita, vista, fechaVisible, seleccion]);
 
   // Clic simple en un slot vacío
   const handleDateClick = useCallback((info) => {
@@ -189,19 +275,16 @@ export default function AgendaPage() {
     calendarRef.current?.getApi().unselect();
   }, [openDialog]);
 
-  // Clic en una cita existente: abre el diálogo de detalle
+  // Clic en una cita existente: abre el diálogo de detalle con el
+  // formulario de cambio de estado limpio
   const handleEventClick = useCallback((info) => {
-    setSelectedEvent(info.event);
-    setDetailOpen(true);
-  }, []);
-
-  // Limpia el estado de cambio de estado cuando se selecciona una cita diferente
-  useEffect(() => {
     setStatusError('');
     setShowCancelForm(false);
     setCancelReason('');
     setStatusChanging(false);
-  }, [selectedEvent]);
+    setSelectedEvent(info.event);
+    setDetailOpen(true);
+  }, []);
 
   // Cierra el diálogo de detalle y reinicia el estado de cambio de estado
   const handleDetailClose = useCallback(() => {
@@ -219,7 +302,7 @@ export default function AgendaPage() {
     try {
       await changeAppointmentStatus(selectedEvent.id, newStatus, reason);
       handleDetailClose();
-      await fetchEvents();
+      recargar();
     } catch (err) {
       // Un 403 ya lo muestra ForbiddenNotice con el mensaje del servidor
       if (!isForbidden(err)) {
@@ -230,7 +313,7 @@ export default function AgendaPage() {
     } finally {
       setStatusChanging(false);
     }
-  }, [selectedEvent, handleDetailClose, fetchEvents]);
+  }, [selectedEvent, handleDetailClose, recargar]);
 
   // Abre el formulario de nueva cita prellenado con datos de la cita original.
   // Solo disponible para citas canceladas o con estado 'no_show'.
@@ -266,42 +349,94 @@ export default function AgendaPage() {
   const handleAgendada = useCallback(({ fecha, hora }) => {
     setNuevaCita((n) => ({ ...n, open: false }));
     setAviso(`Cita agendada para el ${diaCorto(fecha)} a las ${horaCorta(hora)}`);
-    fetchEvents();
-  }, [fetchEvents]);
+    recargar();
+  }, [recargar]);
+
+
+  // Cabecera de cada día en semana: "LUN" y el número; hoy, en un
+  // círculo rojo como en Calendario. En mes, solo la inicial del día.
+  const renderCabeceraDia = useCallback((arg) => {
+    // En la vista de mes FullCalendar entrega un `date` de referencia
+    // en UTC (no un día real); `dow` es el dato confiable
+    const dia = DIAS_CORTOS[arg.dow ?? arg.date.getDay()];
+    if (arg.view.type === 'dayGridMonth') return <span className="dia-semana">{dia}</span>;
+    return (
+      <span className="dia-cabecera">
+        <span className="dia-semana">{dia}</span>
+        <span className={`dia-numero${arg.isToday ? ' es-hoy' : ''}`}>{arg.date.getDate()}</span>
+      </span>
+    );
+  }, []);
+
+  const renderEvento = useCallback((arg) => (
+    <EventoCita
+      arg={arg}
+      oscuro={isDark}
+      odontologo={mostrarOdontologo ? odontologoDe(arg.event.extendedProps.staff_id) : null}
+    />
+  ), [isDark, mostrarOdontologo, odontologoDe]);
 
   // ── Render ─────────────────────────────────────────────────
   return (
     <Box sx={{ p: { xs: 2, md: 3 } }} data-fc-mode={mode}>
-      {/* Encabezado */}
-      <Typography
-        variant="h5"
-        sx={{ color: 'text.primary', mb: { xs: 2, md: 3 }, fontSize: { xs: '1.15rem', md: '1.5rem' } }}
+      <AgendaToolbar
+        titulo={titulo}
+        vista={vista}
+        oscuro={isDark}
+        isMobile={isMobile}
+        onVista={(v) => api()?.changeView(v)}
+        onAnterior={() => api()?.prev()}
+        onSiguiente={() => api()?.next()}
+        onHoy={() => api()?.today()}
+        onNueva={handleNueva}
+      />
+
+      {/* Filtro de odontólogos + leyenda de estados */}
+      <Box
+        sx={{
+          display: 'flex', flexWrap: 'wrap', alignItems: 'center',
+          justifyContent: 'space-between', gap: 1.5, mb: 2,
+        }}
       >
-        Agenda
-      </Typography>
+        <Box sx={{ minWidth: 0, maxWidth: '100%' }}>
+          <FiltroOdontologos
+            dentists={dentists}
+            seleccion={seleccion}
+            onCambiar={setSeleccion}
+            conteos={conteos}
+            total={totalActivas}
+            oscuro={isDark}
+          />
+        </Box>
+        {!isMobile && (
+          <Box component="ul" aria-label="Estados de la cita" sx={{ display: 'flex', gap: 1.75, m: 0, p: 0, listStyle: 'none' }}>
+            {ESTADOS_LEYENDA.map((st) => (
+              <Box component="li" key={st} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, fontSize: 12.5, color: 'text.secondary' }}>
+                <Box component="span" sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: STATUS_COLORS[st] }} />
+                {STATUS_LABELS[st]}
+              </Box>
+            ))}
+          </Box>
+        )}
+      </Box>
 
-      {/* Filtro de odontólogo: ancho completo en móvil */}
-      <FormControl size="small" sx={{ mb: 3, minWidth: 240, width: { xs: '100%', md: 'auto' } }}>
-        <InputLabel>Odontólogo</InputLabel>
-        <Select
-          label="Odontólogo"
-          value={selectedStaff}
-          onChange={(e) => setSelectedStaff(e.target.value)}
-        >
-          <MenuItem value="">Todos</MenuItem>
-          {dentists.map((d) => (
-            <MenuItem key={d.id} value={d.id}>
-              {d.name}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+      {/* Tira de la semana: solo móvil y vista de día */}
+      {isMobile && vista === 'timeGridDay' && (
+        <SemanaMovil
+          fecha={fechaVisible}
+          onElegir={(f) => api()?.gotoDate(parseFechaLocal(f))}
+          diasConCitas={diasConCitas}
+          oscuro={isDark}
+        />
+      )}
 
-      {/* Calendario o esqueleto de carga */}
-      <Paper elevation={0} sx={glassPaperSx}>
-        {loading ? (
-          <CalendarSkeleton columns={isMobile ? 1 : 7} />
-        ) : (
+      <Paper elevation={0} sx={surfaceSx}>
+        {/* Carga sin desmontar el calendario: una línea fina arriba */}
+        {cargando && (
+          <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, zIndex: 5 }} />
+        )}
+
+        <Box sx={{ height: isMobile ? 'auto' : 'calc(100vh - 252px)', minHeight: isMobile ? 0 : 560 }}>
           <FullCalendar
             // La key fuerza un remontaje al cruzar el breakpoint móvil/escritorio
             // (por ejemplo al rotar o redimensionar), para que initialView tome efecto
@@ -311,32 +446,39 @@ export default function AgendaPage() {
             // Explícito: las citas llegan como hora de pared sin zona y
             // se pintan tal cual en la hora local del navegador.
             timeZone="local"
+            locale="es"
+            firstDay={1}
             initialView={isMobile ? 'timeGridDay' : 'timeGridWeek'}
-            headerToolbar={{
-              left: 'prev,next today',
-              center: 'title',
-              right: 'timeGridWeek,timeGridDay,dayGridMonth',
-            }}
-            {...(isMobile ? calendarLocaleESMobile : calendarLocaleES)}
-            nowIndicator={true}
-            allDaySlot={false}
-            slotMinTime="08:00:00"
-            slotMaxTime="18:00:00"
+            headerToolbar={false}
+            datesSet={handleDatesSet}
+            // Solo días y horas de atención de la clínica
+            hiddenDays={DIAS_CERRADOS}
+            slotMinTime={`${CLINICA.horario.apertura}:00`}
+            slotMaxTime={`${CLINICA.horario.cierre}:00`}
             slotDuration="00:30:00"
             slotLabelInterval="01:00:00"
-            expandRows={true}
-            dayHeaderFormat={{ weekday: 'short', day: 'numeric' }}
-            eventTimeFormat={{ hour: '2-digit', minute: '2-digit', hour12: false }}
+            slotLabelFormat={{ hour: 'numeric', minute: '2-digit', hour12: false }}
+            allDaySlot={false}
+            nowIndicator
+            // Citas simultáneas lado a lado, sin encimarse
+            slotEventOverlap={false}
+            eventMinHeight={22}
+            // En vista de día el título ya dice qué día es
+            dayHeaders={vista !== 'timeGridDay'}
+            dayHeaderContent={renderCabeceraDia}
+            eventContent={renderEvento}
+            dayMaxEvents={3}
+            moreLinkText={(n) => `${n} más`}
             events={events}
-            height="auto"
-            weekends
+            height={isMobile ? 'auto' : '100%'}
+            expandRows
             selectable
             selectMirror
             dateClick={handleDateClick}
             select={handleSelect}
             eventClick={handleEventClick}
           />
-        )}
+        </Box>
       </Paper>
 
       {/* ── Diálogo: detalle de cita existente ──────────────── */}
