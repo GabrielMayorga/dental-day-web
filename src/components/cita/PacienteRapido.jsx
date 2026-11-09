@@ -7,6 +7,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Box, Stack, TextField, Button, Alert, Typography, CircularProgress } from '@mui/material';
 import { createPatient } from '../../api/patients';
+import { isForbidden } from '../../api/client';
 import { TELEFONO, mensajeError } from './comun';
 
 // "maría josé mendez" → nombre "maría", apellido "josé mendez"
@@ -62,7 +63,8 @@ export default function PacienteRapido({ textoInicial = '', onCreado, onCancelar
       });
       onCreado(paciente);
     } catch (err) {
-      setError(mensajeError(err, 'No se pudo crear el paciente. Inténtalo de nuevo.'));
+      // Un 403 ya lo muestra ForbiddenNotice con el mensaje del servidor
+      if (!isForbidden(err)) setError(mensajeError(err, 'No se pudo crear el paciente. Inténtalo de nuevo.'));
       setGuardando(false);
     }
   };

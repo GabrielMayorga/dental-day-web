@@ -20,6 +20,7 @@ import {
 import { Close } from '@mui/icons-material';
 import { getAppointments, createAppointment } from '../../api/appointments';
 import { getTreatments } from '../../api/treatments';
+import { isForbidden } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { CLINICA } from '../../config/clinica';
 import { aHoraLocal, parseFechaLocal, sumarDias } from '../../utils/fechas';
@@ -211,7 +212,8 @@ export default function NuevaCitaDialog({ open, onClose, onAgendada, dentists = 
         setHora(null);
         setVersion((v) => v + 1);
         if (isMobile) setPaso(1);
-      } else {
+      } else if (!isForbidden(err)) {
+        // Un 403 ya lo muestra ForbiddenNotice con el mensaje del servidor
         setError(mensajeError(err, 'No se pudo agendar la cita. Inténtalo de nuevo.'));
       }
       setGuardando(false);

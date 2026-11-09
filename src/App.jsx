@@ -9,6 +9,7 @@ import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import RateLimitNotice from './components/RateLimitNotice';
+import ForbiddenNotice from './components/ForbiddenNotice';
 import LoginPage from './pages/LoginPage';
 import HomePage from './pages/HomePage';
 import PatientsPage from './pages/PatientsPage';
@@ -19,6 +20,7 @@ import ReportsPage from './pages/ReportsPage';
 import NotificationsPage from './pages/NotificationsPage';
 import RecordsPage from './pages/RecordsPage';
 import InvoicesPage from './pages/InvoicesPage';
+import AuditPage from './pages/AuditPage';
 import { navItems } from './config/navigation';
 
 // Roles permitidos para una ruta, tomados del menú (src/config/navigation.js)
@@ -32,6 +34,7 @@ function App() {
   return (
     <AuthProvider>
       <RateLimitNotice />
+      <ForbiddenNotice />
       <BrowserRouter>
         <Routes>
           {/* Ruta pública (sin layout) */}
@@ -55,6 +58,7 @@ function App() {
             <Route path="/notificaciones" element={<ProtectedRoute roles={rolesFor('/notificaciones')}><NotificationsPage /></ProtectedRoute>} />
             <Route path="/reportes" element={<ProtectedRoute roles={rolesFor('/reportes')}><ReportsPage /></ProtectedRoute>} />
             <Route path="/usuarios" element={<ProtectedRoute roles={rolesFor('/usuarios')}><UsersPage /></ProtectedRoute>} />
+            <Route path="/auditoria" element={<ProtectedRoute roles={rolesFor('/auditoria')}><AuditPage /></ProtectedRoute>} />
           </Route>
         </Routes>
       </BrowserRouter>

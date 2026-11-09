@@ -16,6 +16,7 @@ import {
 } from '@mui/material';
 import { PersonAdd } from '@mui/icons-material';
 import { getUsers, createUser, changeUserRole, changeUserStatus } from '../api/users';
+import { isForbidden } from '../api/client';
 import AnimatedList from '../components/AnimatedList';
 import { CardListSkeleton, TableRowsSkeleton } from '../components/Skeletons';
 
@@ -135,7 +136,8 @@ const UsersPage = () => {
       );
       setRoleConfirm(null);
     } catch (err) {
-      setSnackbar({
+      // Un 403 ya lo muestra ForbiddenNotice con el mensaje del servidor
+      if (!isForbidden(err)) setSnackbar({
         open: true,
         message:
           err.response?.data?.error ||
@@ -299,7 +301,7 @@ const UsersPage = () => {
       setDialogOpen(false);
       fetchUsers(); // refresca la lista
     } catch (err) {
-      setFormError(
+      if (!isForbidden(err)) setFormError(
         err.response?.data?.error ||
         err.response?.data?.message ||
         'Error al crear el usuario'

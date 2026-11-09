@@ -44,16 +44,39 @@ const notifyRateLimited = (error) => {
   rateLimitListeners.forEach((listener) => listener());
 };
 
+// ── Aviso de acceso denegado (403) ──
+// El mensaje del servidor se muestra tal cual (ForbiddenNotice).
+// Las pantallas no repiten ese error en sus propias alertas:
+// usan isForbidden() para saltárselo.
+const forbiddenListeners = new Set();
+
+export const isForbidden = (error) => error?.response?.status === 403;
+
+export const onForbidden = (listener) => {
+  forbiddenListeners.add(listener);
+  return () => forbiddenListeners.delete(listener);
+};
+
+const notifyForbidden = (error) => {
+  const message = error.response?.data?.error || error.response?.data?.message;
+  if (!message) return;
+  forbiddenListeners.forEach((listener) => listener(message));
+};
+
 // ── Interceptor de RESPUESTA ──
 // Si el backend responde 401 (token inválido/expirado),
 // limpiamos el token y mandamos al usuario al login.
 // Un 429 solo se avisa; no se reintenta en automático. El login
-// tiene su propio mensaje con cuenta regresiva.
+// tiene su propio mensaje con cuenta regresiva. Un 403 se avisa
+// con el mensaje del servidor.
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (isRateLimited(error) && error.config?.url !== '/auth/login') {
       notifyRateLimited(error);
+    }
+    if (isForbidden(error)) {
+      notifyForbidden(error);
     }
     if (error.response?.status === 401) {
       localStorage.removeItem('token');

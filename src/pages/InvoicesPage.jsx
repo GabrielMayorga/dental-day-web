@@ -18,6 +18,7 @@ import { Add, Delete, Visibility } from '@mui/icons-material';
 import { getInvoices, getInvoice, createInvoice, changeInvoiceStatus } from '../api/invoices';
 import { getPatients } from '../api/patients';
 import { getTreatments } from '../api/treatments';
+import { isForbidden } from '../api/client';
 import { CardListSkeleton, TableRowsSkeleton } from '../components/Skeletons';
 import { formatFecha, parseInstante } from '../utils/fechas';
 
@@ -233,7 +234,8 @@ const InvoicesPage = () => {
       setDetailInvoice(null);
       fetchInvoices(statusFilter);
     } catch (err) {
-      setDetailError(
+      // Un 403 ya lo muestra ForbiddenNotice con el mensaje del servidor
+      if (!isForbidden(err)) setDetailError(
         err.response?.data?.error || 'Error al cambiar el estado de la factura.'
       );
     } finally {
@@ -316,7 +318,7 @@ const InvoicesPage = () => {
       setDialogOpen(false);
       fetchInvoices(statusFilter);
     } catch (err) {
-      setFormError(
+      if (!isForbidden(err)) setFormError(
         err.response?.data?.error ||
         err.response?.data?.message ||
         'Error al crear la factura.'
